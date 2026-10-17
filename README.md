@@ -1,7 +1,7 @@
 <h1 align="center">LACT: limited-angle CT with LEARN-DenseNet and an L-BFGS data step</h1>
 
 <p align="center">
-  Code of the thesis <i>“Đánh giá và so sánh các mạng tích chập sâu trong bài toán CT góc giới hạn”</i><br>
+  Code of the thesis<br>
   (Evaluating and comparing deep convolutional networks for limited-angle CT)
 </p>
 
