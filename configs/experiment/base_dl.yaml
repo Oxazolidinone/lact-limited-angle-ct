@@ -1,0 +1,18 @@
+# Step 1 on DeepLesion (docs/PHASE2.md): first-order training of ResNet, U-Net, DenseNet (first-order LEARN) and
+# RegFormer. 4 models x {90°, 120°} = 8 runs, 50 epochs x 2,000 slices (key slices drawn from the official split). No lr
+# sweep:
+#   - the three LEARN backbones use lr 3e-4, exactly the lr of their Mayo (E3) runs;
+#   - RegFormer uses 1e-4 as in its original code and as QN-Mixer and CG-GLORE trained it.
+#   lact train grid configs/experiment/base_dl.yaml -c <env> configs/variant/joint.yaml --run
+exp: base_dl
+configs:
+  - configs/paths.yaml
+  - configs/data/mayo_3mm.yaml        # intensity/grid defaults; joint store set by -c configs/variant/joint.yaml
+  - configs/data/split_joint_dl.yaml
+  - configs/train/default.yaml        # Adam, cosine, 50 epochs, batch 1, MSE (as in the papers, see docs/PHASE2.md)
+lr_table: {unet_ed: 3.0e-4, resnet_ed: 3.0e-4, densenet_ed: 3.0e-4, regformer: 1.0e-4}
+grid:
+  model: [configs/model/learn_unet.yaml, configs/model/learn_resnet.yaml, configs/model/learn_densenet.yaml,
+          configs/model/regformer.yaml]
+  geometry: [configs/geometry/fan_a120.yaml, configs/geometry/fan_a90.yaml]
+  seed: [0]

@@ -1,0 +1,20 @@
+\begin{tabular}{lcccccccccccc}
+\toprule
+\multirow{3}{*}{Method} & \multicolumn{4}{c}{Mayo} & \multicolumn{4}{c}{DeepLesion} & \multicolumn{4}{c}{2DeteCT} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+ & \multicolumn{2}{c}{90$^\circ$} & \multicolumn{2}{c}{120$^\circ$} & \multicolumn{2}{c}{90$^\circ$} & \multicolumn{2}{c}{120$^\circ$} & \multicolumn{2}{c}{90$^\circ$} & \multicolumn{2}{c}{120$^\circ$} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11} \cmidrule(lr){12-13}
+ & PSNR$\uparrow$ & SSIM$\uparrow$ & PSNR$\uparrow$ & SSIM$\uparrow$ & PSNR$\uparrow$ & SSIM$\uparrow$ & PSNR$\uparrow$ & SSIM$\uparrow$ & PSNR$\uparrow$ & SSIM$\uparrow$ & PSNR$\uparrow$ & SSIM$\uparrow$ \\
+\midrule
+FBP & 13.15 & 0.4092 & 15.58 & 0.5350 & 13.96 & 0.3923 & 16.12 & 0.4665 & 21.52 & 0.5106 & 23.76 & 0.6123 \\
+TV & 20.99 & 0.6822 & 24.43 & 0.7884 & 20.00 & 0.6360 & 22.88 & 0.7400 & 25.67 & 0.7176 & 27.91 & 0.7911 \\
+FBPConvNet~\cite{jin2017fbpconvnet} & 23.58 & 0.7861 & 29.57 & 0.8731 & 28.31 & \underline{0.8588} & 32.49 & 0.9159 & 32.34 & 0.9082 & 34.45 & 0.9373 \\
+Learned Primal-Dual~\cite{adler2018lpd} & 25.88 & 0.8034 & 31.56 & 0.9170 & 26.62 & 0.8176 & 31.56 & 0.8986 & 32.07 & 0.9044 & 34.44 & 0.9337 \\
+LEARN~\cite{chen2018learn} & 25.86 & 0.8281 & \underline{33.01} & \underline{0.9331} & 28.32 & 0.8457 & 32.82 & 0.9124 & 32.44 & 0.9124 & 34.54 & 0.9366 \\
+RegFormer~\cite{xia2024regformer} & 25.16 & 0.8421 & 31.28 & 0.9272 & 28.21 & 0.8584 & 32.53 & 0.9123 & \underline{32.98} & \underline{0.9203} & \underline{35.24} & \textbf{0.9438} \\
+DPMA~\cite{wu2025dpma} & 24.12 & 0.7555 & 28.95 & 0.8582 & 27.57 & 0.7652 & 32.00 & 0.8367 & 30.64 & 0.8035 & 31.52 & 0.8458 \\
+CG-GLORE~\cite{cgglore2026} & \underline{25.89} & \underline{0.8473} & 31.34 & 0.9189 & \underline{28.39} & 0.8494 & \underline{33.47} & \underline{0.9186} & 32.47 & 0.9132 & 34.64 & 0.9378 \\
+\midrule
+\oursname{} & \textbf{28.65$^\dagger$} & \textbf{0.8988} & \textbf{36.28$^\dagger$} & \textbf{0.9562} & \textbf{32.31$^\dagger$} & \textbf{0.9061} & \textbf{36.28$^\dagger$} & \textbf{0.9415} & \textbf{33.29$^\dagger$} & \textbf{0.9240} & \textbf{35.27$^\dagger$} & \underline{0.9438} \\
+\bottomrule
+\end{tabular}

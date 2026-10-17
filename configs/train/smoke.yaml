@@ -1,0 +1,10 @@
+# Quick trial run on fake data / a weak machine.
+_base_: [default.yaml]
+train:
+  epochs: 1
+  max_steps: 20
+  limit_val: 4
+  log_every: 5
+  tensorboard: false
+precision:
+  deterministic: false

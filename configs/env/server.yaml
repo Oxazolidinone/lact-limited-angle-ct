@@ -1,0 +1,27 @@
+# Run directly with .venv on the server; every path lives inside the project directory.
+paths:
+  outputs: outputs
+  data: outputs/data
+  operators: outputs/operators
+  runs: outputs/runs
+  eval: outputs/eval
+  tables: outputs/tables
+  figures: outputs/figures
+  baselines: outputs/baselines
+data:
+  dicom_root: data_raw/mayo/full_3mm
+  images_h5: outputs/data/images.h5
+  stats_json: outputs/data/stats.json
+  slices_json: outputs/data/slices.json
+cache:
+  enabled: true
+  dir: cache
+  arrays: true
+  verify: sha256
+train:
+  tensorboard: false
+  checkpoint_every_min: 10
+  keep_prev_checkpoint: true
+  oom_retry_checkpoint: true
+  require_gpu: true
+device: cuda

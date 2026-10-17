@@ -1,0 +1,7 @@
+# Common settings of the unrolled LEARN framework (inherited by the other model files through _base_).
+model:
+  K: 14                  # number of stages; reduce to 7 across the board if resources run out (Gate 1)
+  share_theta: true      # regularizer weights shared by every stage
+  alpha0: 1.0            # initial alpha_k (normalised operator, ||A|| = 1)
+  beta0: 1.0             # initial beta_k
+  grad_checkpoint: false # per-stage checkpointing to save memory

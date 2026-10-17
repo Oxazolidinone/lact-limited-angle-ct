@@ -1,0 +1,13 @@
+# The methods of the CG-GLORE paper's table on 2DeteCT, same recipe as cmp_mayo / cmp_dl.
+exp: cmp_dt
+configs:
+  - configs/paths.yaml
+  - configs/data/detect.yaml          # measured 2DeteCT; the store is set by -c configs/variant/detect.yaml
+  - configs/data/split_detect.yaml
+  - configs/train/bmvc.yaml           # training recipe of the CG-GLORE paper
+lr_table: {cg_glore: 1.0e-4, fbpconvnet: 1.0e-4, lpd: 1.0e-4, learn_orig: 1.0e-4}
+grid:
+  model: [configs/model/cg_glore.yaml, configs/model/learn_orig.yaml, configs/model/fbpconvnet.yaml,
+          configs/model/lpd.yaml]
+  geometry: [configs/geometry/dt_a120.yaml, configs/geometry/dt_a90.yaml]
+  seed: [0]

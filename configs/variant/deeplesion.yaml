@@ -1,0 +1,23 @@
+# Data variant: DeepLesion (the second dataset), noise-free, same geometry and same E0-E6 pipeline.
+#   lact data download-deeplesion -c configs/data/deeplesion.yaml --zips 1 2     # ~8 GiB
+#   lact data split-deeplesion    -c configs/data/deeplesion.yaml                # writes configs/data/split_deeplesion.yaml
+#   lact pipeline run -c configs/variant/deeplesion.yaml --device cuda
+# The split file must exist before this configuration is loaded; keep it unchanged for every run (and store it with the
+# code). mu_ref is recomputed from the DeepLesion training split; the projection matrices are shared with Mayo (same
+# geometry).
+_base_: [../data/deeplesion.yaml, ../data/split_deeplesion.yaml]
+paths:
+  outputs: outputs_deeplesion
+  data: outputs_deeplesion/data
+  operators: outputs/operators
+  runs: outputs_deeplesion/runs
+  eval: outputs_deeplesion/eval
+  tables: outputs_deeplesion/tables
+  figures: outputs_deeplesion/figures
+  baselines: outputs_deeplesion/baselines
+data:
+  images_h5: outputs_deeplesion/data/images.h5
+  stats_json: outputs_deeplesion/data/stats.json
+  slices_json: outputs_deeplesion/data/slices.json
+cache:
+  dir: cache/deeplesion      # own cache: the sinogram files have the same names as Mayo's

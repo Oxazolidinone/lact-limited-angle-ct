@@ -1,0 +1,15 @@
+# Second dataset: DeepLesion (NIH Clinical Center; Yan et al., 2018). 16-bit PNG CT slices, HU = pixel - 32768.
+# Download and split (once), see configs/variant/deeplesion.yaml:
+#   lact data download-deeplesion -c configs/data/deeplesion.yaml --zips 1 2
+#   lact data split-deeplesion    -c configs/data/deeplesion.yaml
+data:
+  format: deeplesion
+  dicom_root: data_raw/deeplesion              # holds Images_png/<patient>_<study>_<series>/<slice>.png
+  info_csv: data_raw/deeplesion/DL_info.csv    # slice spacing, series flagged as noisy, the official split
+  series_glob: null
+  expected_slice_thickness_mm: null
+  # Each series is a run of adjacent slices around a lesion (neighbouring slices are near duplicates, especially 1 mm
+  # series): take at most 40 evenly spaced slices per patient => a training set of the same scale as Mayo (~1,700
+  # slices).
+  max_slices_per_patient: 40
+  patients: []                                 # overridden by the split file

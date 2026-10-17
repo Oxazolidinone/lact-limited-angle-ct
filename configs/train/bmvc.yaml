@@ -1,0 +1,23 @@
+# Training recipe of the CG-GLORE paper (BMVC 2026), SHARED by every method of the comparison table with that paper
+# (grids cmp_* and dpma*; decided by the user on 13/10). The paper: "GLORE and all comparative models are trained for 50
+# epochs with a learning rate of 1e-4"; the rest comes from the authors' code (train_reconstruction_opt.py and
+# models/cg_glore.py): AdamW, weight decay 1e-2, cosine down to 1e-5, batch 1, MSE loss, no lr warm-up, no gradient
+# clipping. The original code stops early after 10 epochs without improvement; here all 50 epochs run and the epoch with
+# the best validation PSNR is kept.
+# The thesis runs (base_*, lbfgs_*) do NOT use this file: they were trained with configs/train/default.yaml.
+_base_: [default.yaml]
+train:
+  optimizer: adamw
+  lr: 1.0e-4
+  weight_decay: 1.0e-2
+  lr_min: 1.0e-5
+  epochs: 50
+  batch_size: 1
+  warmup_epochs: 0.0
+  grad_clip: null
+# Deterministic mode is off (the user decided on 13/10: each configuration is trained once, so bit-exact repeats are
+# not needed). Measured on an RTX 5090: with it on, CG-GLORE is 2.6x slower (3.3 vs ~1.2 s/step) because the 165 FBPs
+# per step must use the deterministic index-add. Results get neither better nor worse, only not exactly repeatable; the
+# thesis runs (base_*, lbfgs_*) were trained with this mode on.
+precision:
+  deterministic: false

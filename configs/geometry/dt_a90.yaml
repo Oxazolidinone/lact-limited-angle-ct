@@ -1,0 +1,16 @@
+# 2DeteCT, 90° limited angle (as in LION): the FIRST 900 measured projections (0.1° step) binned in pairs -> 450
+# projections, 0.2° step. Start angle 180.05° = 180° + half a binned step
+# (lact/datasets/detect/raw.py::first_angle_deg); angle i = center - span/2 + (i + 0.5) step. FleX-ray scanner: SOD
+# 431.02 mm, SDD 529.00 mm, flat detector 1912 x 0.0748 mm binned by 8 -> 239 x 0.5984 mm; field of view = detector
+# width x SOD / SDD = 116.528 mm (as the 1024²
+# reference images of 2DeteCT/LION).
+geometry:
+  name: dt_a90
+  span_deg: 90.0
+  step_deg: 0.2
+  center_deg: 224.95
+  n_det: 239
+  det_spacing_mm: 0.5984
+  dso_mm: 431.019989
+  dod_mm: 97.980499
+  fov_mm: 116.528143

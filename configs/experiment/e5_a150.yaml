@@ -1,0 +1,14 @@
+# E5: supplementary 150°. One seed by default; add 1, 2 if GPU time is left.
+exp: e5_a150
+_base_: [_base.yaml]
+lr_from: e2_sweep   # best lr from <paths.runs>/e2_sweep/best_lr.json (lact report select-lr)
+grid:
+  model: [configs/model/learn_cnn.yaml, configs/model/learn_unet.yaml, configs/model/learn_unet_regnet.yaml,
+          configs/model/learn_resnet.yaml, configs/model/learn_resnet_regnet.yaml,
+          configs/model/learn_resnext.yaml, configs/model/learn_regnet.yaml,
+          configs/model/learn_densenet.yaml, configs/model/learn_densenet_regnet.yaml,
+          configs/model/learn_efficientnet.yaml, configs/model/learn_efficientnet_regnet.yaml,
+          configs/model/learn_convnext.yaml, configs/model/learn_convnext_regnet.yaml,
+          configs/model/learn_vit.yaml, configs/model/learn_vit_regnet.yaml]
+  geometry: [configs/geometry/fan_a150.yaml]
+  seed: [0]

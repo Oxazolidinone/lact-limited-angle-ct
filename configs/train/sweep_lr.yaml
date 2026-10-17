@@ -1,0 +1,4 @@
+# E2: learning-rate sweep, 20 epochs (40% of the budget), the same for every architecture.
+_base_: [default.yaml]
+train:
+  epochs: 20

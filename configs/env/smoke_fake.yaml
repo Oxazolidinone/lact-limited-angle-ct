@@ -1,0 +1,29 @@
+# Smoke-test the whole pipeline on FAKE DICOM (lact data fake --size 128). NOT for results.
+# Example: lact data preprocess -c configs/env/smoke_fake.yaml
+paths:
+  outputs: outputs_smoke
+  data: outputs_smoke/data
+  operators: outputs_smoke/operators
+  runs: outputs_smoke/runs
+  eval: outputs_smoke/eval
+  tables: outputs_smoke/tables
+  figures: outputs_smoke/figures
+  baselines: outputs_smoke/baselines
+data:
+  dicom_root: data_raw/fake_mayo
+  img_size_sim: 128
+  img_size_rec: 64
+  images_h5: outputs_smoke/data/images.h5
+  stats_json: outputs_smoke/data/stats.json
+  slices_json: outputs_smoke/data/slices.json
+train:
+  epochs: 2
+  log_every: 10
+  tensorboard: false
+precision:
+  deterministic: false
+baseline:
+  tv:
+    lambdas: [1.0e-5, 1.0e-4, 1.0e-3]
+    iters: [20, 50]
+    n_val_slices: 4

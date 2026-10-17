@@ -1,0 +1,14 @@
+# LEARN-UNet-RegNet: the plain convolution block of LEARN-UNet + RegNetY-200MF.
+# Integrating RegNetY-200MF: keep the family's block type, take the layout from the 200MF rule (wm = 2.49, 13 blocks =>
+# d = [1, 1, 4, 7]) and add SE with ratio 0.25 to each block (as in the Y block). Widths scaled by s = 0.46 (w0 = 24 s,
+# wa = 36.44 s) so the parameter count matches the uniform-layout version: w = [8, 24, 72, 168], 2.32M (+0.0% vs
+# learn_unet).
+_base_: [_common.yaml]
+model:
+  arch: learn_unet_regnet
+  regularizer:
+    name: unet_regnet
+    regnet: {w0: 11.04, wa: 16.76, wm: 2.49, depth: 13}
+    se_ratio: 0.25
+    dec_depth: 1
+    gn_groups: 8

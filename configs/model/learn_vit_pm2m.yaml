@@ -1,0 +1,7 @@
+# E4 parameter-matched group (~2M): ViT D=128, 4 heads ~1.87M.
+_base_: [learn_vit.yaml]
+model:
+  arch: learn_vit_pm2m
+  regularizer:
+    dim: 128
+    heads: 4

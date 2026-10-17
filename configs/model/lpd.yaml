@@ -1,0 +1,16 @@
+# Learned Primal-Dual (Adler & Öktem, IEEE TMI 2018), src/lact/core/models/baselines/lpd.py. NOT part of the LEARN
+# framework: 10 iterations with their own weights, each with a sinogram-domain and an image-domain network (3 layers of
+# 3x3 convolution, 32 channels, PReLU). 0.253M parameters (the CG-GLORE paper reports 0.251M). Training recipe:
+# configs/train/bmvc.yaml through the cmp_* grids. Primal and dual variables start at 0 as in the original paper.
+model:
+  framework: lpd
+  arch: lpd
+  K: 10                    # number of iterations
+  grad_checkpoint: false
+  regularizer:
+    name: lpd              # name used for lr, tables and figures
+    n_primal: 5            # image-domain memory channels
+    n_dual: 5              # sinogram-domain memory channels
+    channels: 32
+    kernel: 3
+    init: zero             # zero: as in the original paper | fbp: every image channel starts from x^0 (as in DIVAL)

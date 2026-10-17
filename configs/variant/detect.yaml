@@ -1,0 +1,20 @@
+# Data variant: 2DeteCT (MEASURED CT, configs/data/detect.yaml), with its own store and results in outputs_detect/.
+#   bash scripts/vast/detect.sh            # the whole pipeline on the rented machine (download, build the store, train, evaluate)
+# The split lives in each experiment grid (configs/experiment/*_dt.yaml -> split_detect.yaml).
+# Arithmetic mode stays at the default (TF32), like every other run on the RTX 5090.
+_base_: [../data/detect.yaml, ../data/detect_patients.yaml]
+paths:
+  outputs: outputs_detect
+  data: outputs_detect/data
+  operators: outputs_detect/operators
+  runs: outputs_detect/runs
+  eval: outputs_detect/eval
+  tables: outputs_detect/tables
+  figures: outputs_detect/figures
+  baselines: outputs_detect/baselines
+data:
+  images_h5: outputs_detect/data/images.h5
+  stats_json: outputs_detect/data/stats.json
+  slices_json: outputs_detect/data/slices.json
+cache:
+  dir: cache/detect

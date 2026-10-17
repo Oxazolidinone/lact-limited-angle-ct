@@ -1,0 +1,16 @@
+# LEARN-DenseNet-RegNet: the dense block of LEARN-DenseNet + RegNetY-200MF.
+# Integrating RegNetY-200MF: keep the family's block type, take the layout from the 200MF rule (wm = 2.49, 13 blocks =>
+# d = [1, 1, 4, 7]) and add SE with ratio 0.25 to each block (as in the Y block). Widths scaled by s = 0.32 (w0 = 24 s,
+# wa = 36.44 s) so the parameter count matches the uniform-layout version: w = [8, 16, 48, 120], 2.88M (+6.7% vs
+# learn_densenet).
+_base_: [_common.yaml]
+model:
+  arch: learn_densenet_regnet
+  regularizer:
+    name: densenet_regnet
+    regnet: {w0: 7.68, wa: 11.66, wm: 2.49, depth: 13}
+    se_ratio: 0.25
+    growth_ratio: 0.5
+    layers: 3
+    dec_depth: 1
+    gn_groups: 8

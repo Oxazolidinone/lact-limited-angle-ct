@@ -1,0 +1,13 @@
+# 2DeteCT, 120° limited angle (as in LION): the FIRST 1,200 measured projections (0.1° step) binned in pairs -> 600
+# projections, 0.2° step. Start angle 180.05° as in dt_a90.yaml (same first projection; the scan-range centre therefore
+# differs from dt_a90).
+geometry:
+  name: dt_a120
+  span_deg: 120.0
+  step_deg: 0.2
+  center_deg: 239.95
+  n_det: 239
+  det_spacing_mm: 0.5984
+  dso_mm: 431.019989
+  dod_mm: 97.980499
+  fov_mm: 116.528143

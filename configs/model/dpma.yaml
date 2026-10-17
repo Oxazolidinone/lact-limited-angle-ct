@@ -1,0 +1,27 @@
+# DPMA (Wu et al., Scientific Reports 2025; original code github.com/jia-W-w/DPKA), rebuilt in
+# src/lact/core/models/baselines/dpma/ and adapted to limited angle (see its package docstring and docs/PHASE2.md,
+# section 10). NOT part of the LEARN framework. Trained in TWO stages as in the original code, one run per stage:
+#   stage 1: network M1 (shared by sinogram and image)          -> grids dpma1_mayo / dpma1_dl
+#   stage 2: M1 frozen (loaded from the stage-1 run), train M2   -> grids dpma_mayo / dpma_dl (train.init_from)
+# At evaluation the stage-2 run adds 300 refinement iterations without learning. Each network has 8.06M parameters (the
+# CG-GLORE paper reports 8.1M). Training recipe: configs/train/bmvc.yaml through the dpma* grids (as in the CG-GLORE
+# paper: 50 epochs per stage, lr 1e-4; the original DPMA code uses lr 5e-4, 100 epochs). The model computes its own loss
+# (three-term L1 in stage 1, MSE in stage 2).
+model:
+  framework: dpma
+  arch: dpma
+  K: 1                     # no learned iteration layers
+  grad_checkpoint: false
+  regularizer:
+    name: dpma             # name used for lr, tables and figures
+    stage: 2               # 1 | 2 (the dpma1_* grids override it to 1)
+    width: 16              # first-level channels of M1 and M2
+    chunk_size: 144        # tokens per hash bucket of the non-local attention
+    sino_scale: 0.192      # 76.8 / 400: sinograms on the scale of the original code (76.8-unit field of view)
+    target_name: fan_a240  # full-angle scan range the sinogram is filled up to (configs/geometry/fan_a240.yaml)
+    target_span_deg: 240.0
+    refine_iters: 300      # refinement iterations at inference (data step + TV); 1 = off
+    refine_step: 0.15
+    refine_lambda: 0.1
+    refine_delta: 0.005    # TV weight
+    refine_tv_iters: 10

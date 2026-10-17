@@ -1,0 +1,28 @@
+# Third dataset: 2DeteCT (Kiss et al., Scientific Data 10:576, 2023), MEASURED CT, 2D fan beam (FleX-ray scanner, CWI).
+# Follows the limited-angle task of the LION benchmark (Kiss, Biguri et al., arXiv:2412.08350): inputs and targets both
+# use mode 2 (regular dose), limited angle = the FIRST projections of the sinogram, split by sample. Details:
+# lact/datasets/detect/.
+#   lact data split-2detect    -c configs/data/detect.yaml   # once: detect_slices.csv, detect_patients.yaml, split_detect.yaml
+#   lact data download-2detect -c configs/data/detect.yaml --full 1 3000 4600
+# The data store and the later steps use configs/variant/detect.yaml.
+data:
+  format: 2detect
+  detect:
+    raw_dir: data_raw/2detect
+    records_csv: data_raw/2detect_meta/default_data_records.csv
+    slices_csv: configs/data/detect_slices.csv
+    n_rows: 1200            # 120° at a 0.1° step; 90° uses the first 900 of these projections
+    det_bin: 8              # 1912 -> 239 detector elements, 0.5984 mm
+    angle_bin: 2            # 0.2° step: 450 projections at 90°, 600 at 120°
+    # Checked with experiments/analysis/detect_geometry_check.py on slices 1, 3000, 4600 with full 360° (15/10/2026): rotating
+    # the reference image by 180° WITHOUT flipping the detector gives a residual ||cAx - y|| / ||y|| = 2.7-3.2 % with c
+    # = 0.9996-1.0002 (next best option: 11-12 %); shifting the detector by +-0.25 elements changes little; full-360°
+    # FBP matches the reference (correlation ~0.98).
+    flip_det: false
+    image_transform: rot180
+  expected_slice_thickness_mm: null
+  norm:
+    mode: percentile
+    percentile: 99.9        # mu_ref = percentile of mu on the training split, as for Mayo
+  img_size_sim: 512
+  img_size_rec: 256

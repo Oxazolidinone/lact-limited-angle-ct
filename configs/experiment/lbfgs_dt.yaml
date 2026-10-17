@@ -1,0 +1,13 @@
+# Main model on 2DeteCT: LEARN-DenseNet + L-BFGS (K = 14), same recipe as lbfgs_mayo / lbfgs_dl.
+exp: lbfgs_dt
+configs:
+  - configs/paths.yaml
+  - configs/data/detect.yaml          # measured 2DeteCT; the store is set by -c configs/variant/detect.yaml
+  - configs/data/split_detect.yaml
+  - configs/train/default.yaml        # Adam, cosine, 50 epochs, batch 1, MSE (as in lbfgs_dl)
+lr_table: {densenet_ed: 3.0e-4}
+overrides: [model.update=lbfgs, model.lbfgs_memory=13, model.lbfgs_damping=0.5]
+grid:
+  model: [configs/model/learn_densenet.yaml]
+  geometry: [configs/geometry/dt_a120.yaml, configs/geometry/dt_a90.yaml]
+  seed: [0]

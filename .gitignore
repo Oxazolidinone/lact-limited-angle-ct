@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.DS_Store
+
+# Data and results (kept out of git)
+outputs/
+data_raw/
+*.h5
+*.npz
+*.pt
+runs/
+wandb/
+outputs_smoke/
+configs/local.yaml
+.mypy_cache/
+.import_linter_cache/
+.venv/
+.runtime/
+
+# Regression suite: golden outputs are tracked, the operator cache is not
+!tests/regression/golden/**/*.npz
+.regression_cache/

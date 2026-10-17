@@ -1,0 +1,13 @@
+# Step 1 on Mayo: only RegFormer needs training (2 runs); ResNet, U-Net, DenseNet already have E3 runs (e3_main), copied
+# to outputs_joint/runs/e3_main by scripts/vast/mac_push_phase2.sh. Same images, sinograms and 7/1/2 split as E3.
+exp: base_mayo
+configs:
+  - configs/paths.yaml
+  - configs/data/mayo_3mm.yaml        # intensity/grid defaults; joint store set by -c configs/variant/joint.yaml
+  - configs/data/split_joint_mayo.yaml
+  - configs/train/default.yaml        # Adam, cosine, 50 epochs, batch 1, MSE (as in the papers, see docs/PHASE2.md)
+lr_table: {regformer: 1.0e-4}
+grid:
+  model: [configs/model/regformer.yaml]
+  geometry: [configs/geometry/fan_a120.yaml, configs/geometry/fan_a90.yaml]
+  seed: [0]

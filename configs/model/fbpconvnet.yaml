@@ -1,0 +1,13 @@
+# FBPConvNet (Jin et al., IEEE TIP 2017), src/lact/core/models/baselines/fbpconvnet.py: a U-Net post-processing the FBP
+# image, no sinogram input. 5 levels of 64-1024 channels, BatchNorm, input added back at the end. 31.08M parameters (the
+# CG-GLORE paper reports 31.1M). Training recipe: configs/train/bmvc.yaml through the cmp_* grids (the original paper
+# uses SGD, 101 epochs and flips).
+model:
+  framework: fbpconvnet
+  arch: fbpconvnet
+  K: 1                     # no iteration layers
+  grad_checkpoint: false
+  regularizer:
+    name: fbpconvnet       # name used for lr, tables and figures
+    base: 64               # first-level channels, doubled after each downsampling
+    depth: 4               # number of downsamplings

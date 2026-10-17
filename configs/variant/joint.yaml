@@ -1,0 +1,24 @@
+# Phase-2 data variant: the JOINT Mayo + DeepLesion store (configs/data/joint.yaml), own outputs in outputs_joint/.
+#   bash scripts/vast/phase2.sh            # the whole pipeline on the rented machine (docs/PHASE2.md)
+#   lact data preprocess -c configs/variant/joint.yaml ; lact data simulate -c configs/variant/joint.yaml -g fan_a90 fan_a120
+# The split is NOT set here: each experiment grid (configs/experiment/base_*, lbfgs_*) picks its split_joint*.yaml.
+# The projection matrices are shared with Mayo (same geometry).
+_base_: [../data/joint.yaml]
+# Arithmetic mode stays at the default (precision.tf32: true) like the E3 runs: phase 2 runs on the same GPU type
+# (RTX 5090), so new runs and the E3 baseline are trained and evaluated the same way. If a later run must use an older
+# GPU (without TF32), set precision.tf32: false here for EVERY run; never mix the two modes in one table.
+paths:
+  outputs: outputs_joint
+  data: outputs_joint/data
+  operators: outputs/operators
+  runs: outputs_joint/runs
+  eval: outputs_joint/eval
+  tables: outputs_joint/tables
+  figures: outputs_joint/figures
+  baselines: outputs_joint/baselines
+data:
+  images_h5: outputs_joint/data/images.h5
+  stats_json: outputs_joint/data/stats.json
+  slices_json: outputs_joint/data/slices.json
+cache:
+  dir: cache/joint           # own cache: the sinogram files have the same names as Mayo's

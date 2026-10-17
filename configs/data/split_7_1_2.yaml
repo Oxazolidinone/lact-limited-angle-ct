@@ -1,0 +1,6 @@
+# Patient-level split: 7 train / 1 validation / 2 test. Each patient is in one split only.
+split:
+  name: split_7_1_2
+  train: [L067, L096, L109, L143, L192, L286, L291]
+  val: [L333]
+  test: [L310, L506]

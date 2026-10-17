@@ -1,0 +1,23 @@
+# L-BFGS data step on DeepLesion: 4 models x 2 geometries, trained FROM SCRATCH (random initialisation). 8 runs. Same
+# recipe as each model's first-order run (base_dl): same data, same lr (the three LEARN backbones 3e-4, RegFormer 1e-4),
+# 50 epochs, same seed; the ONLY difference is the data step (model.update=lbfgs: H0 = I, step alpha initialised to 1,
+# memory of every earlier stage = 13 pairs). Compared directly with the first-order run, no control needed.
+# The user decided on 11/10/2026: do NOT load the first-order checkpoints (the 10/10 version did, now removed).
+# Stabilisation: model.lbfgs_damping=0.5 (Powell, relative to B0 = I; H never scales a direction by more than 2x).
+# Without it, training from scratch diverges (11/10: DenseNet Mayo at step ~2,300, RegFormer Mayo at step ~21,000). The
+# level 0.5 was chosen with short trial runs on the Mayo validation split (DenseNet 120°, RegFormer 90°; tried 0.05 /
+# 0.2 / 0.5 and dropping flat pairs): LEARN is stable at every level, RegFormer only keeps up with the first-order run
+# at 0.5. See docs/PHASE2.md.
+exp: lbfgs_dl
+configs:
+  - configs/paths.yaml
+  - configs/data/mayo_3mm.yaml        # intensity/grid defaults; joint store set by -c configs/variant/joint.yaml
+  - configs/data/split_joint_dl.yaml
+  - configs/train/default.yaml        # Adam, cosine, 50 epochs, batch 1, MSE (as in the papers, see docs/PHASE2.md)
+lr_table: {unet_ed: 3.0e-4, resnet_ed: 3.0e-4, densenet_ed: 3.0e-4, regformer: 1.0e-4}
+grid:
+  model: [configs/model/learn_unet.yaml, configs/model/learn_resnet.yaml, configs/model/learn_densenet.yaml,
+          configs/model/regformer.yaml]
+  geometry: [configs/geometry/fan_a120.yaml, configs/geometry/fan_a90.yaml]
+  seed: [0]
+overrides: [model.update=lbfgs, model.lbfgs_memory=13, model.lbfgs_damping=0.5]

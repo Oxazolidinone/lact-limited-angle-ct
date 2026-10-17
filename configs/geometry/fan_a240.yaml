@@ -1,0 +1,13 @@
+# The full-angle scan range DPMA fills the sinogram up to (configs/model/dpma.yaml): 240°, 960 views. Slightly beyond
+# the short scan (236.68°) so that the angles of fan_a90 and fan_a120 fall exactly on this angle grid (offsets of 300
+# and 240 views).
+geometry:
+  name: fan_a240
+  span_deg: 240.0
+  step_deg: 0.25
+  center_deg: 0.0          # scan-range centre, the same for every range
+  n_det: 512
+  det_spacing_mm: 1.875    # flat detector 512 x 1.875 mm = 960 mm
+  dso_mm: 600.0            # source to rotation centre
+  dod_mm: 290.0            # rotation centre to detector
+  fov_mm: 400.0            # square field of view [-200, 200] mm

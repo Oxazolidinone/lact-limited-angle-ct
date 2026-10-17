@@ -1,0 +1,4 @@
+baseline:
+  fbp:
+    filter: ram-lak        # ram-lak | shepp-logan | cosine | hann
+    cutoff: 1.0

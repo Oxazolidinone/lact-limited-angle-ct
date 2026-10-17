@@ -1,0 +1,8 @@
+# LEARN-CNN: 3 convolution layers of 5x5, 48 channels (the baseline model). ~0.060M parameters.
+_base_: [_common.yaml]
+model:
+  arch: learn_cnn
+  regularizer:
+    name: cnn3
+    channels: 48
+    kernel: 5

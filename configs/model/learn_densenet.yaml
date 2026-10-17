@@ -1,0 +1,12 @@
+# LEARN-DenseNet: dense block (3 concatenating layers, growth = c/2) + Conv 1x1 - AvgPool transition. ~2.70M parameters.
+_base_: [_common.yaml]
+model:
+  arch: learn_densenet
+  regularizer:
+    name: densenet_ed
+    channels: [32, 64, 128, 256]
+    depths: [1, 1, 1, 1]
+    growth_ratio: 0.5
+    layers: 3
+    dec_depth: 1
+    gn_groups: 8

@@ -1,0 +1,22 @@
+# Local hooks only: they run the tools installed in .venv (pip install -e ".[dev]"), so no network is needed.
+#   .venv/bin/pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: .venv/bin/ruff check --force-exclude
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy
+        entry: .venv/bin/mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: import-linter
+        name: import-linter (layering contracts)
+        entry: .venv/bin/lint-imports
+        language: system
+        types: [python]
+        pass_filenames: false

@@ -1,0 +1,13 @@
+# E4: parameter-matched group (~2M) at 120°. ConvNeXt (1.98M) reuses the E3 runs.
+exp: e4_matched
+_base_: [_base.yaml]
+lr_from: e2_sweep   # best lr from <paths.runs>/e2_sweep/best_lr.json (lact report select-lr)
+grid:
+  model: [configs/model/learn_resnet_pm2m.yaml, configs/model/learn_regnet_pm2m.yaml,
+          configs/model/learn_vit_pm2m.yaml]
+  geometry: [configs/geometry/fan_a120.yaml]
+  seed: [0]
+# Since 05/10/2026 each configuration is trained with ONE seed only. Seeds 1, 2 remain only in runs trained earlier (the
+# first four architectures on Mayo): they are still evaluated, and the report takes the seed with the best validation
+# PSNR (docs/decisions.md).
+keep_finished_seeds: [1, 2]

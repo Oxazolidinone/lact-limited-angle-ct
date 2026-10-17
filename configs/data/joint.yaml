@@ -1,0 +1,21 @@
+# JOINT data store for phase 2 (docs/PHASE2.md): Mayo/AAPM (10 patients, 3 mm DICOM) + DeepLesion (2,500 key slices
+# drawn at random from the official split: 2,000 train / 200 validation / 300 test, as in QN-Mixer and CG-GLORE; 16-bit
+# PNG) share ONE images.h5 and the same sinogram files. Patient ids DLxxxxxx are read from deeplesion_root, the others
+# as DICOM from data.dicom_root (set in configs/env/server.yaml or configs/local.yaml).
+# Intensities are normalised with the SAME mu_ref as Mayo (the value used for E0-E6, ~974 HU), not recomputed:
+#   - the Mayo images in the joint store equal those of the old Mayo store => models trained on Mayo (E3) can be
+#     re-evaluated here;
+#   - the PSNR of both datasets is on the same scale, so they can be compared.
+# The patient list (data.patients) lives in joint_patients.yaml, generated together with deeplesion_keyslices.csv by
+# `lact data split-deeplesion --key-slices` (do not edit by hand).
+_base_: [joint_patients.yaml]
+data:
+  format: mixed
+  deeplesion_root: data_raw/deeplesion_key       # holds ONLY the extracted key slices: Images_png/<series>/<slice>.png
+  info_csv: data_raw/deeplesion_key/DL_info.csv  # slice spacing, series flagged as noisy
+  series_glob: null
+  expected_slice_thickness_mm: 3.0               # applies to DICOM (Mayo) only
+  max_slices_per_patient: 40                     # DeepLesion: each patient holds only a few extracted key slices
+  norm:
+    mode: fixed
+    mu_ref: 0.03790080174803734                  # mm^-1, the mu_ref of the Mayo set (outputs/data/stats.json)

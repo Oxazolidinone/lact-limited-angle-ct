@@ -1,0 +1,32 @@
+# Common training settings for every architecture (proposal section 3.3).
+exp: dev
+seed: 0
+device: auto              # auto | cuda | cpu  (MPS does not support sparse CSR matrices => use cpu on a Mac)
+train:
+  optimizer: adam
+  lr: 1.0e-4
+  betas: [0.9, 0.999]
+  weight_decay: 0.0
+  schedule: cosine        # cosine | constant
+  warmup_epochs: 1.0
+  lr_min: 1.0e-6
+  epochs: 50
+  batch_size: 1
+  grad_clip: 1.0          # null => no clipping
+  loss: mse
+  select_by: val_psnr
+  val_every: 1            # run validation every N epochs
+  val_batch_size: 4
+  num_workers: 0
+  log_every: 50           # log every N steps
+  max_steps: null         # cap on the number of steps (debug/trial runs)
+  limit_train: null       # use only the first N training slices (debug)
+  limit_val: null         # use only the first N validation slices (debug)
+  divergence_factor: 100.0  # loss > factor * initial mean loss => treated as diverged
+  resume: true            # resume from last.pt automatically if present
+  preload: true           # load the whole training set into RAM
+  tensorboard: true       # write TensorBoard logs if installed
+precision:
+  tf32: true
+  amp: false             # not supported: sparse matrix products need FP32
+  deterministic: true

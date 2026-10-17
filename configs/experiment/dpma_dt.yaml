@@ -1,0 +1,13 @@
+# DPMA stage 2 on 2DeteCT (as dpma_dl): loads M1 from the dpma1_dt run of the same geometry.
+exp: dpma_dt
+configs:
+  - configs/paths.yaml
+  - configs/data/detect.yaml          # measured 2DeteCT; the store is set by -c configs/variant/detect.yaml
+  - configs/data/split_detect.yaml
+  - configs/train/bmvc.yaml           # training recipe of the CG-GLORE paper (50 epochs per stage)
+lr_table: {dpma: 1.0e-4}
+overrides: [train.init_from=dpma1_dt, model.regularizer.target_name=auto, model.regularizer.sino_scale=0.659066]
+grid:
+  model: [configs/model/dpma.yaml]
+  geometry: [configs/geometry/dt_a120.yaml, configs/geometry/dt_a90.yaml]
+  seed: [0]

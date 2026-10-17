@@ -1,0 +1,8 @@
+# TV-PDHG (Chambolle-Pock): min 0.5||A x - y||^2 + lambda * TV(x), x >= 0, on the normalised operator.
+baseline:
+  tv:
+    lambdas: [1.0e-6, 3.0e-6, 1.0e-5, 3.0e-5, 1.0e-4, 3.0e-4, 1.0e-3, 3.0e-3]
+    iters: [100, 200, 500, 1000]
+    n_val_slices: 30       # fixed number of validation slices used for tuning
+    batch_size: 8
+    init: fbp              # fbp | zero

@@ -1,0 +1,12 @@
+# DPMA's 240° target for dt_a120 (model.regularizer.target_name: auto): same centre, step and detector as dt_a120;
+# the measured part is projections 300-899 of 1,200.
+geometry:
+  name: dt_a120_to240
+  span_deg: 240.0
+  step_deg: 0.2
+  center_deg: 239.95
+  n_det: 239
+  det_spacing_mm: 0.5984
+  dso_mm: 431.019989
+  dod_mm: 97.980499
+  fov_mm: 116.528143

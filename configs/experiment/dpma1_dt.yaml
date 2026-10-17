@@ -1,0 +1,14 @@
+# DPMA stage 1 on 2DeteCT (as dpma1_dl). A 240° target per geometry (target_name: auto ->
+# configs/geometry/dt_a90_to240.yaml, dt_a120_to240.yaml); sino_scale = 76.8 / field of view 116.528 mm.
+exp: dpma1_dt
+configs:
+  - configs/paths.yaml
+  - configs/data/detect.yaml          # measured 2DeteCT; the store is set by -c configs/variant/detect.yaml
+  - configs/data/split_detect.yaml
+  - configs/train/bmvc.yaml           # training recipe of the CG-GLORE paper (50 epochs per stage)
+lr_table: {dpma: 1.0e-4}
+overrides: [model.regularizer.stage=1, model.regularizer.target_name=auto, model.regularizer.sino_scale=0.659066]
+grid:
+  model: [configs/model/dpma.yaml]
+  geometry: [configs/geometry/dt_a120.yaml, configs/geometry/dt_a90.yaml]
+  seed: [0]

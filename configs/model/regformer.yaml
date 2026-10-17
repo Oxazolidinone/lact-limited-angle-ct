@@ -1,0 +1,18 @@
+# RegFormer (Xia et al., IEEE TRPMS 2024; original code github.com/Deep-Imaging-Group/RegFormer), rebuilt in
+# src/lact/core/models/baselines/regformer.py. NOT part of the LEARN framework: 10 layers with their own weights,
+# alternating convolution and Swin blocks; the data step is the FBP of the sinogram residual; 48 feature channels are
+# passed between layers. 2.68M parameters (the CG-GLORE paper reports 2.7M for this 10-layer configuration).
+model:
+  framework: regformer
+  arch: regformer
+  K: 10                    # number of layers
+  grad_checkpoint: false
+  regularizer:
+    name: regformer        # name used for lr, tables and figures
+    dim: 96                # channels of the convolution block = token dimension of the Swin block
+    window: 8              # 8 x 8 pixel attention window
+    depth: 2               # Swin layers per block (the second one shifts the window by half a step)
+    heads: 3
+    mlp_ratio: 4.0
+    drop_path: 0.1         # stochastic depth in the last Swin layer of each block, as in the original
+    zero_out: true         # image output layer of each block starts at 0 (original: N(0, 0.01^2), erratic; see code)

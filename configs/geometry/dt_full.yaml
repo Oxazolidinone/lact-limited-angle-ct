@@ -1,0 +1,12 @@
+# 2DeteCT with full 360° (1,800 projections, 0.2° step, start angle 180.05°): only for checking the geometry on slices
+# downloaded with all angles (experiments/analysis/detect_geometry_check.py), not used for training.
+geometry:
+  name: dt_full
+  span_deg: 360.0
+  step_deg: 0.2
+  center_deg: 359.95
+  n_det: 239
+  det_spacing_mm: 0.5984
+  dso_mm: 431.019989
+  dod_mm: 97.980499
+  fov_mm: 116.528143

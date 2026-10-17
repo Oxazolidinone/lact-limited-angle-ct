@@ -1,0 +1,10 @@
+# Shared output paths (relative to the repository root).
+paths:
+  outputs: outputs
+  data: outputs/data
+  operators: outputs/operators
+  runs: outputs/runs
+  eval: outputs/eval
+  tables: outputs/tables
+  figures: outputs/figures
+  baselines: outputs/baselines

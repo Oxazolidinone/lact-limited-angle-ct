@@ -1,0 +1,15 @@
+# RegFormer on 2DeteCT, same recipe as base_dl (RegFormer's original FBP step, no L-BFGS).
+exp: base_dt
+configs:
+  - configs/paths.yaml
+  - configs/data/detect.yaml          # measured 2DeteCT; the store is set by -c configs/variant/detect.yaml
+  - configs/data/split_detect.yaml
+  - configs/train/default.yaml        # Adam, cosine, 50 epochs, batch 1, MSE (as in base_dl)
+lr_table: {regformer: 1.0e-4}
+# User, 15/10: deterministic mode off for RegFormer (the per-layer FBP is slow in deterministic mode); lbfgs_dt keeps it
+# on.
+overrides: [precision.deterministic=false]
+grid:
+  model: [configs/model/regformer.yaml]
+  geometry: [configs/geometry/dt_a120.yaml, configs/geometry/dt_a90.yaml]
+  seed: [0]

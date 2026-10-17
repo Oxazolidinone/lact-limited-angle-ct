@@ -1,0 +1,21 @@
+# Mayo/AAPM 2016 Low Dose CT Grand Challenge data, 3 mm full-dose images.
+data:
+  dicom_root: /path/to/Mayo_LDCT_2016        # EDIT: directory holding L067, L096, ...
+  # Glob pattern (relative to dicom_root) to find a patient's 3 mm full-dose DICOM files.
+  # Leave null => auto-detect a folder whose name contains "full" and "3mm" (or "3_") inside the patient folder.
+  series_glob: null
+  patients: [L067, L096, L109, L143, L192, L286, L291, L310, L333, L506]
+  expected_slice_thickness_mm: 3.0
+  hu_clip: [-1024.0, 3071.0]
+  mu_water_mm: 0.0192          # attenuation coefficient of water (mm^-1), only used to convert HU <-> mu
+  norm:
+    mode: percentile           # percentile | hu_window
+    percentile: 99.9           # mu_ref = percentile of mu on the training split
+    hu_max: 3071.0             # used when mode = hu_window
+    sample_per_slice: 20000    # pixels sampled per slice to estimate the percentile
+  img_size_sim: 512            # sinogram simulation grid
+  img_size_rec: 256            # reconstruction grid, reference image = 2x2 block mean
+  images_h5: outputs/data/images.h5
+  stats_json: outputs/data/stats.json
+  slices_json: outputs/data/slices.json
+  augment: none                # none | hflip (left-right flip, sinograms precomputed)

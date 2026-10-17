@@ -1,0 +1,5 @@
+# E6: cross-geometry inference (no training). Used by `lact eval cross`.
+exp: e6_crossgeo
+source_exp: e3_main
+train_geometries: [fan_a90, fan_a120]
+test_geometries: [configs/geometry/fan_a90.yaml, configs/geometry/fan_a120.yaml, configs/geometry/fan_a150.yaml]

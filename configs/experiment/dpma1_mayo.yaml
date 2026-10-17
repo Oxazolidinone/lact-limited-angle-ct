@@ -1,0 +1,14 @@
+# DPMA, stage 1 on the Mayo set (docs/PHASE2.md, section 10): train network M1 from scratch, 2 runs {90°, 120°}.
+# These runs only feed dpma_mayo (where M1 is frozen); they are not reported in the result tables.
+exp: dpma1_mayo
+configs:
+  - configs/paths.yaml
+  - configs/data/mayo_3mm.yaml        # intensity/grid defaults; joint store set by -c configs/variant/joint.yaml
+  - configs/data/split_joint_mayo.yaml
+  - configs/train/bmvc.yaml           # training recipe of the CG-GLORE paper (50 epochs per stage)
+lr_table: {dpma: 1.0e-4}
+overrides: [model.regularizer.stage=1]
+grid:
+  model: [configs/model/dpma.yaml]
+  geometry: [configs/geometry/fan_a120.yaml, configs/geometry/fan_a90.yaml]
+  seed: [0]
