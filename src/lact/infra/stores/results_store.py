@@ -90,7 +90,7 @@ class ResultsStore:
         return load_json(self.index_file) if self.index_file.exists() else {}
 
     def find(self, **filters) -> dict[str, dict]:
-        """Filter the index by metadata, e.g. ``split='test', geometry_test='fan_a120', exp='e3_main'``."""
+        """Filter the index by metadata, e.g. ``split='test', geometry_test='fan_a120', exp='lbfgs_mayo'``."""
         return {t: m for t, m in self.index().items() if all(m.get(k) == v for k, v in filters.items())}
 
     def load_slices(self, **filters) -> pd.DataFrame:

@@ -6,7 +6,7 @@ from lact.core.imaging.geometry import FanBeamGeometry
 
 
 def test_views_and_angles():
-    for span, nv in ((90, 360), (120, 480), (150, 600)):
+    for span, nv in ((90, 360), (120, 480), (240, 960)):
         g = load_geometry(f"fan_a{span}")
         assert g.n_views == nv
         a = g.angles_deg()
@@ -28,5 +28,5 @@ def test_bad_step_raises():
 
 
 def test_dict_roundtrip():
-    g = load_geometry("fan_a150")
+    g = load_geometry("fan_a120")
     assert FanBeamGeometry.from_dict(g.to_dict()) == g

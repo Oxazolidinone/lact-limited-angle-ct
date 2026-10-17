@@ -15,7 +15,7 @@ class ExperimentSpec:
     exp: str
     configs: list[str] = field(default_factory=list)       # shared configuration files; empty => defaults
     grid: dict[str, list[Any]] = field(default_factory=dict)
-    lr_from: str | None = None                             # name of the lr-sweep experiment (e.g. e2_sweep)
+    lr_from: str | None = None                             # name of an lr-sweep experiment with best_lr.json
     # Learning rates given per regularizer name (same format as best_lr.json), e.g. the Mayo E2 choice reused on another
     # dataset without a new sweep. Models missing from the table take their lr from lr_from (when declared); without
     # lr_from the table must cover every model of the grid. Cannot be combined with grid.lr.

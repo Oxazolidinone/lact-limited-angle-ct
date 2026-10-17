@@ -14,7 +14,7 @@ from ...config.loader import REPO_ROOT
 from ...infra.system.processes import ProcessRunner
 from ..training.trainer import EXIT_INTERRUPTED, find_init_run, run_store_for
 from .jobs import Job
-from .planning import order_jobs, sweep_sec_per_step
+from .planning import order_jobs
 
 log = logging.getLogger("lact")
 
@@ -40,7 +40,7 @@ def run_jobs(jobs: list[Job], max_hours: float | None = None, gpus: list[str] | 
       command.
     - ``job_mem_mb`` {model.arch: peak memory}, ``gpu_mem_mb``: memory-aware packing (runs needing more than half a GPU
       run alone). ``sec_per_step`` {model.arch: seconds/step}: the longest runs are queued first, so each long run gets
-      its own GPU before short runs fill in. All three come from the ``lact train pilot`` table.
+      its own GPU before short runs fill in. All three come from ``--mem-table``.
     - A run interrupted mid-way (exit code 3, checkpoint saved) => the whole grid stops; run the command again to
     resume.
     - ``max_hours``: start no new runs after that many hours (running runs continue).
@@ -75,9 +75,8 @@ def _run_jobs_parallel(jobs: list[Job], max_hours: float | None, gpus: list[str]
         return []
     cfgs = {j.run_id: load_config(j.files, j.overrides, use_defaults=False) for j in todo}
     stores = {k: run_store_for(c) for k, c in cfgs.items()}
-    runs_root = next(iter(cfgs.values())).paths.runs
-    ordered = order_jobs(todo, stores, sweep_sec_per_step(runs_root))
-    if sec_per_step:         # per-architecture pilot measurements (all runs have the same steps): stable sort
+    ordered = order_jobs(todo, stores)
+    if sec_per_step:         # per-architecture measurements (all runs have the same steps): stable sort
         ordered = sorted(ordered, key=lambda j: (stores[j.run_id].status != "partial",
                                                  -float(sec_per_step.get(j.arch, 0.0))))
     weights = gpu_shares(todo, job_mem_mb, gpu_mem_mb, per_gpu)

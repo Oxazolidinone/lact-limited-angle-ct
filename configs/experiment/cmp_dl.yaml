@@ -1,20 +1,13 @@
-# Comparison with the methods of the CG-GLORE paper (BMVC 2026) in the thesis' limited-angle setting, DeepLesion set
-# (docs/PHASE2.md, section "Comparison with the CG-GLORE paper"). Every run is trained FROM SCRATCH with the same
-# images, sinograms, split and evaluation framework as the base_dl / lbfgs_dl runs: batch 1, checkpoint chosen by
-# validation PSNR. 4 methods x {90°, 120°} = 8 runs. RegFormer and LEARN-DenseNet + L-BFGS already have runs (base_dl,
-# lbfgs_dl). DPMA has its own grids since it trains in two stages (dpma1_dl, dpma_dl). QN-Mixer is not implemented: no
-# public source code. Training recipe: SHARED by every method, as the CG-GLORE paper trained its comparison models
-# (configs/train/bmvc.yaml: AdamW, lr 1e-4, weight decay 1e-2, cosine down to 1e-5, 50 epochs, batch 1). Data, image
-# normalisation, split and PSNR/SSIM computation are the thesis', as for the existing runs.
+# Compared methods on DeepLesion; same methods and recipe as cmp_mayo.
+#   lact train grid configs/experiment/cmp_dl.yaml -c configs/variant/joint.yaml --run
 exp: cmp_dl
 configs:
   - configs/paths.yaml
   - configs/data/mayo_3mm.yaml        # intensity/grid defaults; joint store set by -c configs/variant/joint.yaml
   - configs/data/split_joint_dl.yaml
   - configs/train/bmvc.yaml           # training recipe of the CG-GLORE paper
-lr_table: {cg_glore: 1.0e-4, fbpconvnet: 1.0e-4, lpd: 1.0e-4, learn_orig: 1.0e-4}
+lr_table: {fbpconvnet: 1.0e-4, lpd: 1.0e-4, learn_orig: 1.0e-4}
 grid:
-  model: [configs/model/cg_glore.yaml, configs/model/learn_orig.yaml, configs/model/fbpconvnet.yaml,
-          configs/model/lpd.yaml]
+  model: [configs/model/learn_orig.yaml, configs/model/fbpconvnet.yaml, configs/model/lpd.yaml]
   geometry: [configs/geometry/fan_a120.yaml, configs/geometry/fan_a90.yaml]
   seed: [0]

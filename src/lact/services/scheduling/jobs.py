@@ -23,7 +23,7 @@ class Job:
     status: str                                  # todo | partial | done | diverged | oom
     files: list[str] = field(default_factory=list)
     overrides: list[str] = field(default_factory=list)
-    arch: str = ""                               # model configuration name (model.arch), e.g. learn_resnet_regnet
+    arch: str = ""                               # model configuration name (model.arch), e.g. learn_densenet
 
     @property
     def pending(self) -> bool:
@@ -47,7 +47,7 @@ def _base_files(spec: ExperimentSpec, extra_files: list[str]) -> list[str]:
 
 
 def load_best_lr(runs_root: Path, lr_from: str) -> dict[str, float]:
-    """{regularizer name: lr} from <runs>/<lr_from>/best_lr.json (written by ``lact report select-lr``)."""
+    """{regularizer name: lr} from <runs>/<lr_from>/best_lr.json (a JSON file ``{"best_lr": {name: lr}}``)."""
     p = Path(runs_root) / lr_from / "best_lr.json"
     if not p.exists():
         log.warning("%s does not exist yet; using the default train.lr", p)
@@ -75,7 +75,7 @@ def expand(spec_file: str, extra_files: list[str] | None = None, overrides: list
     best_lr = {}
     if spec.lr_from:
         # Only paths.runs is needed here: drop model.* / geometry.* overrides, which have no model file to attach to yet
-        # (e.g. `train grid e3_main.yaml -s model.K=3` from `make smoke`).
+        # (e.g. `train grid lbfgs_mayo.yaml -s model.K=3` for a quick trial).
         path_sets = [o for o in (overrides or []) if not o.strip().startswith(("model.", "geometry."))]
         runs_root = load_config(base, path_sets, use_defaults=False).paths.runs
         best_lr = load_best_lr(runs_root, spec.lr_from)
@@ -119,7 +119,7 @@ def expand(spec_file: str, extra_files: list[str] | None = None, overrides: list
 
 
 def filter_jobs(jobs: list[Job], match: list[str] | None = None, exclude: list[str] | None = None) -> list[Job]:
-    """Keep runs whose run_id contains ONE of the ``match`` strings (e.g. ['convnext'] to run ConvNeXt alone) and none
+    """Keep runs whose run_id contains ONE of the ``match`` strings (e.g. ['regformer'] to run RegFormer alone) and none
     of the ``exclude`` strings (e.g. ['regformer'] to run those later)."""
     if match:
         jobs = [j for j in jobs if any(m in j.run_id for m in match)]

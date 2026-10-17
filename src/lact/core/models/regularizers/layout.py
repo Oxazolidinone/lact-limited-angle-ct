@@ -5,8 +5,8 @@ Quantised linear rule (Radosavovic et al., 2020, "Designing Network Design Space
     u_j = w0 + wa * j  (j = 0..depth-1),   s_j = round(log_wm(u_j / w0)),   w_j = w0 * wm^{s_j}  (rounded to x8)
 
 Blocks sharing a width w_j form a stage: the number of stages, their widths and depths all follow from four numbers
-(w0, wa, wm, depth). The rule fixes only widths and depths, not the block type, so every family (ResNet, ConvNeXt,
-DenseNet, ...) can be placed in a "RegNet layout" through the ``regnet`` configuration entry. The RegNetY line also
+(w0, wa, wm, depth). The rule fixes only widths and depths, not the block type, so the dense block can be placed in
+a "RegNet layout" through the ``regnet`` configuration entry. The RegNetY line also
 adds squeeze-and-excitation to every block (``se_ratio`` = 0.25 in the configuration).
 """
 from __future__ import annotations

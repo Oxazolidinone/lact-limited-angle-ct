@@ -1,1 +1,0 @@
-"""Paper tables and numbers."""

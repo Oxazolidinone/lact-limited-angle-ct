@@ -1,4 +1,4 @@
-# Smoke-test the whole pipeline on FAKE DICOM (lact data fake --size 128). NOT for results.
+# End-to-end run on FAKE DICOM (make smoke; lact data fake --size 128). NOT for results.
 # Example: lact data preprocess -c configs/env/smoke_fake.yaml
 paths:
   outputs: outputs_smoke

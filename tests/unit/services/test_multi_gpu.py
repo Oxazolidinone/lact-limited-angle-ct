@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import ClassVar
 
 import pytest
 
@@ -20,8 +19,7 @@ from lact.config import ConfigError, load_config
 from lact.infra.io.files import load_json
 from lact.infra.system import gpus as G
 from lact.infra.system.processes import BLOCKED, ProcessRunner
-from lact.services.orchestration import pipeline as mod
-from lact.services.scheduling import order_jobs
+from lact.services.scheduling import expand, order_jobs
 
 CSV = ("0, GPU-a, RTX 2080 Ti, 11264, 6146, 35\n"
        "1, GPU-b, RTX 2080 Ti, 11264, 1458, 0\n"
@@ -133,7 +131,8 @@ def test_gpu_device_is_checked_after_merging_config(tmp_path, dev, source):
     cfg_file = tmp_path / "device.yaml"
     cfg_file.write_text(f"device: {dev}\n")
     cfg_args = ["-c", str(cfg_file)] if source == "yaml" else ["-s", f"device={dev}"]
-    args = build_parser().parse_args(["pipeline", "run", "--gpus", "all", *cfg_args])
+    args = build_parser().parse_args(["train", "grid", "configs/experiment/base_mayo.yaml", "--run", "--gpus", "all",
+                                      *cfg_args])
     with pytest.raises(ConfigError, match="device after merging"):
         resolve_gpus(args)
 
@@ -142,10 +141,10 @@ def test_grid_checks_device_overrides_from_experiment(tmp_path, monkeypatch):
     from lact.cli.commands.train import cmd_grid
     from lact.services import scheduling as experiments
 
-    jobs = experiments.expand("configs/experiment/e2_sweep.yaml", overrides=["device=cpu"])
+    jobs = experiments.expand("configs/experiment/base_mayo.yaml", overrides=["device=cpu"])
     monkeypatch.setattr(experiments, "expand", lambda *a, **kw: jobs)
     monkeypatch.setattr(experiments, "run_jobs", lambda *a, **kw: pytest.fail("CPU jobs must not run"))
-    args = build_parser().parse_args(["train", "grid", "configs/experiment/e2_sweep.yaml", "--run", "--gpus", "all"])
+    args = build_parser().parse_args(["train", "grid", "configs/experiment/base_mayo.yaml", "--run", "--gpus", "all"])
     with pytest.raises(ConfigError, match="device after merging"):
         cmd_grid(args)
 
@@ -249,17 +248,18 @@ def test_dependent_jobs_wait_for_their_source_and_blocked_ones_are_reported(tmp_
         assert runner.run([job("x1"), job("x2")]) == {"x1": 0, "x2": 0}
 
 
-def test_pilot_tables_merge_by_model_and_use_the_smallest_gpu(tmp_path, monkeypatch):
-    """--mem-table accepts several pilot tables (one per grid and geometry): each architecture takes the LARGEST
+def test_mem_tables_merge_by_model_and_use_the_smallest_gpu(tmp_path, monkeypatch):
+    """--mem-table accepts several cost tables (one per grid and geometry): each architecture takes the LARGEST
     value."""
-    from lact.cli.common import pilot_tables
+    from lact.cli.common import mem_tables
 
-    (tmp_path / "a.csv").write_text("model,sec_per_step,peak_mem_mb\nregformer,0.40,17000\nlearn_unet,0.10,2800\n")
-    (tmp_path / "b.csv").write_text("model,sec_per_step,peak_mem_mb\nregformer,0.46,17900\nlearn_unet,0.09,\n")
+    (tmp_path / "a.csv").write_text("model,sec_per_step,peak_mem_mb\nregformer,0.40,17000\nlearn_densenet,0.10,2800\n")
+    (tmp_path / "b.csv").write_text("model,sec_per_step,peak_mem_mb\nregformer,0.46,17900\nlearn_densenet,0.09,\n")
     real = G.query_gpus
     monkeypatch.setattr(G, "query_gpus", lambda samples=1: real(samples=samples, run=fake_smi))
-    mem, sec, gpu_mem = pilot_tables([str(tmp_path / "a.csv"), str(tmp_path / "b.csv")], ["GPU-c", "GPU-e"])
-    assert mem == {"regformer": 17900.0, "learn_unet": 2800.0} and sec == {"regformer": 0.46, "learn_unet": 0.10}
+    mem, sec, gpu_mem = mem_tables([str(tmp_path / "a.csv"), str(tmp_path / "b.csv")], ["GPU-c", "GPU-e"])
+    assert mem == {"regformer": 17900.0, "learn_densenet": 2800.0}
+    assert sec == {"regformer": 0.46, "learn_densenet": 0.10}
     assert gpu_mem == 11264.0
 
 
@@ -286,17 +286,18 @@ class _Store:
         return self._beat
 
 
-def test_queue_order_partial_first_then_longest(tmp_path, monkeypatch):
+def test_queue_order_partial_first_then_longest(tmp_path):
     out = tmp_path / "outputs"
-    sets = [f"paths.{k}={out / k}" for k in ("data", "operators", "runs", "eval", "tables", "figures", "baselines")]
-    p = mod.Pipeline(load_config(overrides=sets + [f"paths.outputs={out}"]), [], sets)
+    sets = [f"paths.{k}={out / k}" for k in ("data", "operators", "runs", "eval", "baselines")]
+    sets.append(f"paths.outputs={out}")
     jobs, regs = [], []
-    for j in p.jobs([mod.SWEEP]):             # one run per architecture
-        reg = load_config(j.files, j.overrides, use_defaults=False).require_model().regularizer.name
-        if reg not in regs:
-            jobs.append(j)
-            regs.append(reg)
-    assert len(jobs) == 15
+    for grid in ("base_mayo", "cmp_mayo"):                   # one run per architecture
+        for j in expand(f"configs/experiment/{grid}.yaml", overrides=sets):
+            reg = load_config(j.files, j.overrides, use_defaults=False).require_model().regularizer.name
+            if reg not in regs:
+                jobs.append(j)
+                regs.append(reg)
+    assert len(jobs) == 5
     stores = {j.run_id: _Store("todo") for j in jobs}
     assert order_jobs(jobs, stores) == jobs                     # no measurements: keep the grid order
     sec = {r: float(i + 1) for i, r in enumerate(regs)}      # the last run of the grid is the slowest
@@ -324,52 +325,15 @@ for i in range(15):
     assert not list(tmp_path.glob("*.tmp")) and not list(tmp_path.glob(".*.tmp"))
 
 
-def test_parallel_stage_group_records_each_result(tmp_path):
-    out = tmp_path / "outputs"
-    sets = [f"paths.{k}={out / k}" for k in ("data", "operators", "runs", "eval", "tables", "figures", "baselines")]
-    p = mod.Pipeline(load_config(overrides=sets + [f"paths.outputs={out}"]), [], sets, gpus=["GPU-c", "GPU-e"])
-    assert p.workers == 2
-    p._load_state()
-    files = {k: tmp_path / f"{k}.json" for k in ("a", "b", "c")}
-
-    class Runner:
-        interrupted = False
-        calls: ClassVar[list] = []
-
-        def expired(self):
-            return False
-
-        def run(self, commands, workers=None, on_exit=None):
-            self.calls.append(([k for k, _ in commands], workers))
-            codes = {}
-            for key, _ in commands:
-                if key != "b":
-                    files[key].write_text("{}")
-                codes[key] = 0 if key != "b" else 1
-            return codes
-
-    p.runner = Runner()
-    group = [mod.Stage(k, ["x"], [files[k]]) for k in ("a", "b", "c")]
-    assert p.stages(group) == 1
-    assert Runner.calls == [(["a", "b", "c"], 2)]
-    st = load_json(p.path)["stages"]
-    assert st["a"]["status"] == "done" and st["b"]["status"] == "failed" and st["c"]["status"] == "done"
-    files["b"].write_text("{}")
-    Runner.calls.clear()
-    # re-run: only the failed step runs
-    p.runner.run = lambda commands, workers=None, on_exit=None: (Runner.calls.append([k for k, _ in commands])
-                                                                 or {k: 0 for k, _ in commands})
-    assert p.stages(group) == 0 and Runner.calls == [["b"]]
-
-
 def test_cli_accepts_gpu_options_and_rejects_pinned_device(monkeypatch):
     parser = build_parser()
-    a = parser.parse_args(["pipeline", "run", "--gpus", "auto", "--n-gpus", "2", "--per-gpu", "1", "--dry-run"])
+    a = parser.parse_args(["train", "grid", "configs/experiment/base_mayo.yaml", "--gpus", "auto", "--n-gpus", "2",
+                           "--per-gpu", "1", "--dry-run"])
     assert a.gpus == ["auto"] and a.n_gpus == 2
-    a = parser.parse_args(["train", "grid", "configs/experiment/e3_main.yaml", "configs/experiment/e4_matched.yaml",
+    a = parser.parse_args(["train", "grid", "configs/experiment/base_mayo.yaml", "configs/experiment/lbfgs_mayo.yaml",
                            "--run", "--gpus", "2", "3"])
     assert len(a.experiment) == 2 and a.gpus == ["2", "3"]
     from lact.cli.common import resolve_gpus
-    a = parser.parse_args(["pipeline", "run", "--gpus", "2", "--device", "cuda:1"])
+    a = parser.parse_args(["train", "grid", "configs/experiment/base_mayo.yaml", "--gpus", "2", "--device", "cuda:1"])
     with pytest.raises(ConfigError, match="--device"):
         resolve_gpus(a)

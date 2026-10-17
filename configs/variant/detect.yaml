@@ -1,5 +1,5 @@
 # Data variant: 2DeteCT (MEASURED CT, configs/data/detect.yaml), with its own store and results in outputs_detect/.
-#   bash scripts/vast/detect.sh            # the whole pipeline on the rented machine (download, build the store, train, evaluate)
+#   lact train grid configs/experiment/lbfgs_dt.yaml -c configs/variant/detect.yaml --run
 # The split lives in each experiment grid (configs/experiment/*_dt.yaml -> split_detect.yaml).
 # Arithmetic mode stays at the default (TF32), like every other run on the RTX 5090.
 _base_: [../data/detect.yaml, ../data/detect_patients.yaml]

@@ -1,6 +1,0 @@
-# E4 parameter-matched group (~2M): ResNet with channels [32, 64, 128, 128] ~2.10M.
-_base_: [learn_resnet.yaml]
-model:
-  arch: learn_resnet_pm2m
-  regularizer:
-    channels: [32, 64, 128, 128]

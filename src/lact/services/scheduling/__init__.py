@@ -4,8 +4,8 @@ Each run executes in a child process ``python -m lact train run ...`` to isolate
 can be moved to SLURM (``lact train grid ... --emit runs.sh``).
 """
 from .jobs import Job, emit_script, expand, filter_jobs, load_best_lr, renamed
-from .planning import order_jobs, remaining_work, sweep_sec_per_step
+from .planning import order_jobs
 from .runner import gpu_shares, run_jobs
 
-__all__ = ["Job", "emit_script", "expand", "filter_jobs", "gpu_shares", "load_best_lr", "order_jobs", "remaining_work",
-           "renamed", "run_jobs", "sweep_sec_per_step"]
+__all__ = ["Job", "emit_script", "expand", "filter_jobs", "gpu_shares", "load_best_lr", "order_jobs", "renamed",
+           "run_jobs"]

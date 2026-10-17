@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lact"
-version = "0.3.0"
-description = "Benchmarking regularization blocks (CNN, ResNet, RegNet, ConvNeXt, ViT) in LEARN deep unrolling for limited-angle fan-beam CT"
+version = "0.4.0"
+description = "LEARN-DenseNet deep unrolling with an L-BFGS data step for limited-angle fan-beam CT, with compared methods"
 authors = [{ name = "Nguyen Anh Minh" }]
 requires-python = ">=3.10"
 dependencies = [
@@ -16,16 +16,14 @@ dependencies = [
     "pydicom>=2.4",
     "pyyaml>=6.0",
     "pandas>=2.0",
-    "matplotlib>=3.7",
-    "scikit-image>=0.21",
     "pillow>=9.0",
 ]
 
 [project.optional-dependencies]
 astra = ["astra-toolbox>=2.1"]
-demo = ["gradio>=4.0"]
 track = ["tensorboard>=2.14"]
-dev = ["pytest>=7.4", "ruff>=0.4", "mypy>=1.8", "import-linter>=2.0", "pre-commit>=3.5", "types-PyYAML"]
+dev = ["pytest>=7.4", "scikit-image>=0.21", "ruff>=0.4", "mypy>=1.8", "import-linter>=2.0", "pre-commit>=3.5",
+       "types-PyYAML"]
 
 [project.scripts]
 lact = "lact.cli.main:main"
@@ -33,16 +31,13 @@ lact = "lact.cli.main:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-data]
-"lact.viz" = ["fonts/*.ttf", "fonts/*.txt"]   # fonts embedded in the paper figures (Liberation, SIL OFL 1.1)
-
 # ------------------------------------------------------------------ tests
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
 markers = [
-    "slow: long-running tests (full pipeline)",
-    "regression: pins outputs of finished thesis runs (needs ../ket-qua or LACT_RESULTS_DIR)",
+    "slow: long-running tests",
+    "regression: pins outputs of finished runs (needs LACT_RESULTS_DIR)",
 ]
 
 # ------------------------------------------------------------------ lint / types
@@ -72,11 +67,8 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D"]
-"scripts/**" = ["D"]
-"experiments/**" = ["D"]
-# indented literal blocks (file layout, LaTeX preamble) inside module docstrings
+# indented literal block (file layout) inside the module docstring
 "src/lact/infra/stores/run_store.py" = ["D208"]
-"src/lact/viz/paper/latex.py" = ["D208"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["lact"]
@@ -95,27 +87,21 @@ root_package = "lact"
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Layers: cli -> services -> datasets -> (infra | viz) -> config -> core"
+name = "Layers: cli -> services -> datasets -> infra -> config -> core"
 type = "layers"
-layers = ["lact.cli", "lact.services", "lact.datasets", "lact.infra | lact.viz", "lact.config", "lact.core"]
+layers = ["lact.cli", "lact.services", "lact.datasets", "lact.infra", "lact.config", "lact.core"]
 
 [[tool.importlinter.contracts]]
 name = "Pure core: no I/O, no configuration reading, no plotting"
 type = "forbidden"
 source_modules = ["lact.core"]
-forbidden_modules = ["h5py", "pydicom", "astra", "yaml", "matplotlib"]
+forbidden_modules = ["h5py", "pydicom", "astra", "yaml"]
 
 [[tool.importlinter.contracts]]
 name = "Only infra.operators.astra_matrix may import ASTRA"
 type = "forbidden"
-source_modules = ["lact.config", "lact.services", "lact.cli", "lact.viz", "lact.datasets", "lact.infra.data",
+source_modules = ["lact.config", "lact.services", "lact.cli", "lact.datasets", "lact.infra.data",
                   "lact.infra.io", "lact.infra.stores", "lact.infra.system", "lact.infra.operators.operator_store",
                   "lact.infra.operators.siddon"]
 forbidden_modules = ["astra"]
 allow_indirect_imports = true
-
-[[tool.importlinter.contracts]]
-name = "lact never imports the thesis code in experiments/"
-type = "forbidden"
-source_modules = ["lact"]
-forbidden_modules = ["experiments"]

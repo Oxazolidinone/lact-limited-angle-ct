@@ -15,15 +15,6 @@ class Unrolled(nn.Module):
     grad_checkpoint: bool
     projector: Any = None          # SparseFanBeam; not a submodule, so never part of the state_dict
 
-    @property
-    def uses_cg(self) -> bool:
-        """Whether each stage solves a linear system with CG (``last_cg_iters``, ``cg_iters``, ``cg_tol`` apply)."""
-        return False
-
-    def cg_iters_mean(self) -> float:
-        """Mean CG iterations per stage in the latest forward pass (0 when the model does not use CG)."""
-        return 0.0
-
     def set_projector(self, projector):
         self.projector = projector
         return self

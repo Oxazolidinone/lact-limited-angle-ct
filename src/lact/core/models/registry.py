@@ -1,9 +1,7 @@
 """Regularizer registry and model builders from primitive parameters (independent of the configuration).
 
-Each architecture family has two names: ``<family>_ed`` (uniform layout, doubling widths) and ``<family>_regnet``
-(RegNet-rule layout, configuration with a ``regnet`` entry). Both names point to the same builder; the separate names
-let learning rates, tables and statistical tests treat them as different methods. For the X-block family,
-``resnext_ed`` is the uniform layout and ``regnet_ed`` is RegNet itself.
+Regularizers of the LEARN framework: ``densenet_ed`` (LEARN-DenseNet, a 4-level encoder-decoder of dense blocks)
+and ``learn_orig`` / ``cnn3`` (the 3-layer CNN of the original LEARN). New ones are added with ``@register``.
 """
 from __future__ import annotations
 
@@ -19,29 +17,14 @@ from .baselines.fbpconvnet import FBPConvNet
 from .baselines.lpd import LearnedPrimalDual
 from .baselines.regformer import RegFormer
 from .regularizers.cnn3 import CNN3
-from .regularizers.convnext_ed import convnext_ed
 from .regularizers.densenet_ed import densenet_ed
-from .regularizers.mbconv_ed import mbconv_ed
-from .regularizers.regnet_ed import regnet_ed, resnext_ed
-from .regularizers.resnet_ed import resnet_ed
-from .regularizers.unet_ed import unet_ed
-from .regularizers.vit import vit
-from .regularizers.vit_regnet import vit_regnet
 from .unrolled import Unrolled, UnrolledLEARN
 
 REGISTRY: dict[str, Callable[..., nn.Module]] = {
     "cnn3": CNN3,
-    "learn_orig": CNN3,     # LEARN as in the original paper (configs/model/learn_orig.yaml); distinct from LEARN-CNN
-    "unet_ed": unet_ed, "unet_regnet": unet_ed,
-    "resnet_ed": resnet_ed, "resnet_regnet": resnet_ed,
-    "resnext_ed": resnext_ed, "regnet_ed": regnet_ed,
-    "densenet_ed": densenet_ed, "densenet_regnet": densenet_ed,
-    "mbconv_ed": mbconv_ed, "mbconv_regnet": mbconv_ed,
-    "convnext_ed": convnext_ed, "convnext_regnet": convnext_ed,
-    "vit": vit, "vit_regnet": vit_regnet,
+    "learn_orig": CNN3,     # LEARN as in the original paper (configs/model/learn_orig.yaml)
+    "densenet_ed": densenet_ed,
 }
-# "<family>_regnet" names must use the RegNet rule (guards against a uniform layout configured under a RegNet name)
-REGNET_LAYOUT = {"unet_regnet", "resnet_regnet", "densenet_regnet", "mbconv_regnet", "convnext_regnet"}
 
 
 def register(name: str):
@@ -53,25 +36,21 @@ def register(name: str):
 
 
 def needs_img_size(name: str) -> bool:
-    """Regularizers with a grid positional embedding (ViT) must know the reconstruction grid size."""
+    """Regularizers that take an ``img_size`` argument are built for the reconstruction grid size."""
     return "img_size" in inspect.signature(REGISTRY[name]).parameters
 
 
 def build_regularizer(name: str, **params: Any) -> nn.Module:
     if name not in REGISTRY:
         raise KeyError(f"Regularizer '{name}' is not registered. Available: {sorted(REGISTRY)}")
-    if name in REGNET_LAYOUT and not params.get("regnet"):
-        raise ValueError(f"Regularizer '{name}' needs a regnet entry (w0, wa, wm, depth) in the configuration")
     return REGISTRY[name](**params)
 
 
 def build_unrolled(regularizer: str, params: dict[str, Any], img_size: int, K: int = 14, share_theta: bool = True,
                    alpha0: float = 1.0, beta0: float = 1.0, grad_checkpoint: bool = False,
                    projector=None, **update_kw: Any) -> UnrolledLEARN:
-    """Build an UnrolledLEARN. ViT-like regularizers are always built for the ``img_size`` grid.
-
-    ``update_kw``: the stage update rule (update, metric, lambda0, rho0, gamma0, cg_iters, cg_tol, lbfgs_memory,
-    lbfgs_damping, lbfgs_curv_min); empty = first-order LEARN."""
+    """Build an UnrolledLEARN. ``update_kw``: the stage update rule (update, lbfgs_memory, lbfgs_damping,
+    lbfgs_curv_min); empty = first-order LEARN."""
     params = dict(params)
     if regularizer in REGISTRY and needs_img_size(regularizer):
         params["img_size"] = int(img_size)

@@ -22,7 +22,7 @@ from ...infra.system.runtime import apply_precision
 from ..factories import dataset_for, load_trained, projector_for
 
 log = logging.getLogger("lact")
-MAIN_EXPS = ("e3_main", "e4_matched", "e5_a150")
+MAIN_EXPS = ("base_mayo", "base_dl", "lbfgs_mayo", "lbfgs_dl")
 
 
 @torch.no_grad()

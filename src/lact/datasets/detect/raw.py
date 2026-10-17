@@ -36,8 +36,7 @@ def first_angle_deg(angle_bin: int) -> float:
 
     Raw projection j corresponds to the project angle 180° + j * 0.1°, with the reference image rotated by 180° and the
     detector axis NOT flipped (data.detect.image_transform = rot180, flip_det = false): chosen experimentally on
-    full-360° slices (experiments/analysis/detect_geometry_check.py: residual ||cAx - y|| / ||y|| about 3 %,
-    c about 1)."""
+    full-360° slices (residual ||cAx - y|| / ||y|| about 3 %, c about 1)."""
     return 180.0 + 0.5 * (angle_bin - 1) * STEP_RAW_DEG
 
 

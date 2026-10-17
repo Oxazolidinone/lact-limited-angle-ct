@@ -40,7 +40,7 @@ def model_for(cfg: Config, projector: SparseFanBeam | None = None) -> Unrolled:
                                fbp_filter=cfg.baseline.fbp.filter, fbp_cutoff=cfg.baseline.fbp.cutoff,
                                data_step="lbfgs" if m.update == "lbfgs" else "fbp", lbfgs_memory=m.lbfgs_memory,
                                lbfgs_damping=m.lbfgs_damping, lbfgs_curv_min=m.lbfgs_curv_min)
-    if m.framework != "learn":            # compared methods: CG-GLORE, FBPConvNet, Learned Primal-Dual, DPMA
+    if m.framework != "learn":            # compared methods: FBPConvNet, Learned Primal-Dual, DPMA
         params, target = dict(m.regularizer.params), None
         if m.framework == "dpma":         # extended scan range: the run's geometry with another name and range
             geom = cfg.require_geometry()

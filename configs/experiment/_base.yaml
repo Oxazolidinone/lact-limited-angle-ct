@@ -1,6 +1,0 @@
-# Configuration files shared by every training run of an experiment.
-configs:
-  - configs/paths.yaml
-  - configs/data/mayo_3mm.yaml
-  - configs/data/split_7_1_2.yaml
-  - configs/train/default.yaml

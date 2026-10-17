@@ -1,5 +1,7 @@
-"""Phase-2 configuration: the joint store, the splits, the base_* / lbfgs_* grids, update rules and new commands."""
+"""Configuration of the experiment grids: the joint store, the splits, the base_* / lbfgs_* / cmp_* / dpma* grids,
+the update rules and the commands."""
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -16,7 +18,7 @@ from lact.services.scheduling import expand, filter_jobs, renamed
 
 JOINT = ["configs/variant/joint.yaml"]
 PLAN = ["base_mayo", "base_dl", "lbfgs_mayo", "lbfgs_dl"]
-CMP = ["cmp_mayo", "cmp_dl"]          # comparison table with the CG-GLORE paper
+CMP = ["cmp_mayo", "cmp_dl"]          # compared methods, trained with the recipe of the CG-GLORE paper
 DPMA_GRIDS = ["dpma1_mayo", "dpma1_dl", "dpma_mayo", "dpma_dl"]      # DPMA: stage 1 then stage 2
 
 
@@ -154,23 +156,18 @@ def test_key_slice_selection_and_download(tmp_path, monkeypatch):
 
 
 def test_plan_grids():
-    """Plan of 2026-10-10 (revised 2026-10-11): first-order runs and L-BFGS data-step runs, BOTH trained from scratch on
-    each dataset; L-BFGS runs use the exact recipe of the first-order run of the same model (same lr), no checkpoint."""
+    """LEARN-DenseNet with the first-order step and with the L-BFGS data step, BOTH trained from scratch on each
+    dataset; the L-BFGS runs use the exact recipe of the first-order run (same lr), no checkpoint. RegFormer runs next
+    to the first-order LEARN-DenseNet."""
     grids = {n: expand(f"configs/experiment/{n}.yaml", JOINT, require_lr=True) for n in PLAN}
-    assert {n: len(j) for n, j in grids.items()} == {"base_mayo": 2, "base_dl": 8, "lbfgs_mayo": 8, "lbfgs_dl": 8}
+    assert {n: len(j) for n, j in grids.items()} == {"base_mayo": 4, "base_dl": 4, "lbfgs_mayo": 2, "lbfgs_dl": 2}
     ids = [j.run_id for jobs in grids.values() for j in jobs]
-    assert len(ids) == len(set(ids)) == 26
-    four = {"learn_unet", "learn_resnet", "learn_densenet", "regformer"}
-    assert {j.arch for j in grids["base_mayo"]} == {"regformer"}                # the three LEARN backbones have E3 runs
-    assert all({j.arch for j in grids[n]} == four for n in ("base_dl", "lbfgs_mayo", "lbfgs_dl"))
-    # no lr sweep: LEARN keeps the Mayo lr (3e-4), RegFormer uses 1e-4 as in the papers; L-BFGS runs use the lr of the
-    # first-order run of the same model
-    assert sorted(j.run_id for j in grids["base_dl"] if "lr0.0001" in j.run_id) == [
-        "base_dl_regformer_fan_a120_lr0.0001_s0", "base_dl_regformer_fan_a90_lr0.0001_s0"]
-    assert all("lr0.0001" in j.run_id for j in grids["base_mayo"])
-    for n in ("base_dl", "lbfgs_mayo", "lbfgs_dl"):
-        assert sum("lr0.0003" in j.run_id for j in grids[n]) == 6
-        assert all(("lr0.0001" in j.run_id) == (j.arch == "regformer") for j in grids[n])
+    assert len(ids) == len(set(ids)) == 12
+    assert all({j.arch for j in grids[n]} == {"learn_densenet", "regformer"} for n in ("base_mayo", "base_dl"))
+    assert all({j.arch for j in grids[n]} == {"learn_densenet"} for n in ("lbfgs_mayo", "lbfgs_dl"))
+    # LEARN-DenseNet 3e-4, RegFormer 1e-4 as in its paper; the L-BFGS runs use the lr of the first-order run
+    for jobs in grids.values():
+        assert all(("lr0.0001" if j.arch == "regformer" else "lr0.0003") in j.run_id for j in jobs)
     split = {"base_mayo": "split_joint_mayo", "base_dl": "split_joint_dl", "lbfgs_mayo": "split_joint_mayo",
              "lbfgs_dl": "split_joint_dl"}
     for name, jobs in grids.items():
@@ -181,11 +178,12 @@ def test_plan_grids():
             assert (c.train.epochs, c.train.batch_size, c.train.loss, c.train.optimizer) == (50, 1, "mse", "adam")
             assert c.train.init_from is None and int(c.seed) == 0                # every run trains from scratch
             if name.startswith("lbfgs_"):
-                assert m.update == m.update_tag == "lbfgs" and m.lbfgs_memory == 13 and not m.uses_cg
+                assert m.update == m.update_tag == "lbfgs" and m.lbfgs_memory == 13
                 assert (m.lbfgs_damping, m.lbfgs_curv_min) == (0.5, 0.0)        # stability when training from scratch
             else:
                 assert m.update == "gd" and m.update_tag == ("fbp" if m.framework == "regformer" else "gd")
-    rf = load_config(grids["base_mayo"][0].files, grids["base_mayo"][0].overrides, use_defaults=False).require_model()
+    rf = next(load_config(j.files, j.overrides, use_defaults=False).require_model() for j in grids["base_mayo"]
+              if j.arch == "regformer")
     assert (rf.framework, rf.arch, rf.K) == ("regformer", "regformer", 10)
     for bad in ("model.update=cg", "model.framework=mamba"):
         with pytest.raises(ConfigError):
@@ -193,18 +191,18 @@ def test_plan_grids():
 
 
 def test_compare_grids():
-    """Comparison table with the CG-GLORE paper: four methods trained FROM SCRATCH on each dataset with ONE shared
+    """Compared methods: three methods trained FROM SCRATCH on each dataset with ONE shared
     training recipe, as that paper trained its compared models (configs/train/bmvc.yaml); data, split, checkpoint
     selection and numerical mode as in the existing runs."""
     grids = {n: expand(f"configs/experiment/{n}.yaml", JOINT, require_lr=True) for n in CMP}
     ids = [j.run_id for jobs in grids.values() for j in jobs]
-    assert len(ids) == len(set(ids)) == 16 and all(len(j) == 8 for j in grids.values())
+    assert len(ids) == len(set(ids)) == 12 and all(len(j) == 6 for j in grids.values())
     assert sorted(j.run_id for j in grids["cmp_mayo"] if "fan_a90" in j.run_id) == [
-        "cmp_mayo_cg_glore_fan_a90_lr0.0001_s0", "cmp_mayo_fbpconvnet_fan_a90_lr0.0001_s0",
+        "cmp_mayo_fbpconvnet_fan_a90_lr0.0001_s0",
         "cmp_mayo_learn_orig_fan_a90_lr0.0001_s0", "cmp_mayo_lpd_fan_a90_lr0.0001_s0"]
     old = {j.run_id for n in PLAN for j in expand(f"configs/experiment/{n}.yaml", JOINT, require_lr=True)}
     assert not old & set(ids)
-    model = {"cg_glore": ("cg_glore", "cg_glore", 15, "cg_fbp"), "fbpconvnet": ("fbpconvnet", "fbpconvnet", 1, "post"),
+    model = {"fbpconvnet": ("fbpconvnet", "fbpconvnet", 1, "post"),
              "lpd": ("lpd", "lpd", 10, "pd"), "learn_orig": ("learn", "learn_orig", 30, "gd")}
     # the CG-GLORE paper's recipe (authors' code): (optimizer, lr, lr_min, schedule, epochs, max_steps, warmup, gradient
     # clipping, clipping mode, weight decay, momentum, beta2), identical for every method
@@ -219,7 +217,7 @@ def test_compare_grids():
             assert (m.framework, m.regularizer.name, m.K, m.update_tag) == model[j.arch]
             assert (t.optimizer, t.lr, t.lr_min, t.schedule, t.epochs, t.max_steps, t.warmup_epochs, t.grad_clip,
                     t.grad_clip_mode, t.weight_decay, t.momentum, t.betas[1]) == recipe, j.arch
-            assert m.update == "gd" and not m.uses_cg and t.init_from is None and int(c.seed) == 0
+            assert m.update == "gd" and t.init_from is None and int(c.seed) == 0
             assert c.split.name == ("split_joint_mayo" if name == "cmp_mayo" else "split_joint_dl")
             # thesis-side settings, as in the existing runs: batch, loss, checkpoint selection, numerical mode, data,
             # FBP
@@ -236,7 +234,7 @@ def test_compare_grids():
     assert (learn.regularizer.params["init_std"], learn.regularizer.params["zero_last"]) == (0.01, False)
     assert by_arch["lpd"].regularizer.params["init"] == "zero"                  # as in the original paper
     with pytest.raises(ConfigError):                                            # their update step is fixed
-        load_config(["configs/model/cg_glore.yaml"], ["model.update=lbfgs"])
+        load_config(["configs/model/lpd.yaml"], ["model.update=lbfgs"])
 
 
 def test_author_training_recipes_are_supported():
@@ -314,38 +312,38 @@ def test_grid_can_be_rerun_under_another_name():
     """--exp-rename: same grid, renamed experiment, overrides through -s (e.g. re-running L-BFGS with other epochs)."""
     rename = {"lbfgs_": "lbfgs25_"}
     assert renamed("lbfgs_dl", rename) == "lbfgs25_dl" and renamed("base_dl", rename) == "base_dl"
-    jobs = expand("configs/experiment/lbfgs_dl.yaml", JOINT, ["train.epochs=25"], models=["learn_resnet"],
+    jobs = expand("configs/experiment/lbfgs_dl.yaml", JOINT, ["train.epochs=25"], models=["learn_densenet"],
                   exp_rename=rename)
-    assert [j.run_id for j in jobs] == ["lbfgs25_dl_learn_resnet_fan_a120_lr0.0003_s0",
-                                        "lbfgs25_dl_learn_resnet_fan_a90_lr0.0003_s0"]
+    assert [j.run_id for j in jobs] == ["lbfgs25_dl_learn_densenet_fan_a120_lr0.0003_s0",
+                                        "lbfgs25_dl_learn_densenet_fan_a90_lr0.0003_s0"]
     c = load_config(jobs[0].files, jobs[0].overrides, use_defaults=False)
     assert c.exp == "lbfgs25_dl" and c.train.epochs == 25 and c.train.init_from is None
     # same grid with another data step and starting point: everything goes through -s, the grid is unchanged
     other = expand("configs/experiment/lbfgs_mayo.yaml", JOINT,
-                   ["model.update=gd", "train.init_from=base_mayo,e3_main"], exp_rename={"lbfgs_": "ctrl_"},
+                   ["model.update=gd", "train.init_from=base_mayo"], exp_rename={"lbfgs_": "ctrl_"},
                    require_lr=True)
-    assert len(other) == 8 and all(j.run_id.startswith("ctrl_mayo_") for j in other)
+    assert len(other) == 2 and all(j.run_id.startswith("ctrl_mayo_") for j in other)
     tags = set()
     for j in other:
         c = load_config(j.files, j.overrides, use_defaults=False)
-        assert c.exp == "ctrl_mayo" and c.train.init_from == "base_mayo,e3_main" and c.train.epochs == 50
+        assert c.exp == "ctrl_mayo" and c.train.init_from == "base_mayo" and c.train.epochs == 50
         tags.add(c.require_model().update_tag)
-    assert tags == {"gd", "fbp"}
+    assert tags == {"gd"}
 
 
-def test_phase2_keeps_the_precision_mode_of_the_mayo_runs():
-    """Phase 2 runs on the same GPU type as the Mayo campaign: every new run keeps the numerical mode of the E3 runs
-    (the reference), and every model command sets that mode from the configuration rather than PyTorch defaults."""
+def test_grids_keep_one_precision_mode():
+    """Every grid run keeps the numerical mode of the default configuration (TF32 on), and every model command sets
+    that mode from the configuration rather than PyTorch defaults."""
     from lact.infra.system.runtime import apply_precision
 
-    mayo = load_config([]).precision                                            # E0-E6 on Mayo: as they ran
+    mayo = load_config([]).precision
     joint = load_config([*JOINT, "configs/data/split_joint.yaml"]).precision
     mode = lambda p: (p.tf32, p.deterministic, p.amp)
     assert mode(joint) == mode(mayo) == (True, True, False)
     for n in PLAN:
         for j in expand(f"configs/experiment/{n}.yaml", JOINT, require_lr=True):
             assert load_config(j.files, j.overrides, use_defaults=False).precision.tf32 is True
-    one = expand("configs/experiment/base_dl.yaml", JOINT, ["precision.tf32=false"], models=["learn_unet"])[0]
+    one = expand("configs/experiment/base_dl.yaml", JOINT, ["precision.tf32=false"], models=["learn_densenet"])[0]
     assert load_config(one.files, one.overrides, use_defaults=False).precision.tf32 is False     # overridable with -s
     keep = torch.backends.cudnn.allow_tf32, torch.backends.cuda.matmul.allow_tf32
     try:
@@ -356,29 +354,29 @@ def test_phase2_keeps_the_precision_mode_of_the_mayo_runs():
     finally:
         torch.backends.cudnn.allow_tf32, torch.backends.cuda.matmul.allow_tf32 = keep
     # every model command sets the numerical mode (PyTorch enables TF32 for cuDNN by default)
-    for f in ("training/trainer/loop.py", "evaluation/evaluate.py", "evaluation/recheck.py", "evaluation/benchmark.py"):
+    for f in ("training/trainer/loop.py", "evaluation/evaluate.py", "evaluation/recheck.py"):
         assert "apply_precision(" in Path("src/lact/services", f).read_text(encoding="utf-8"), f
 
 
 def test_exclude_drops_runs_by_substring():
-    """--exclude drops runs by run_id substring; the dropped and remaining parts make up exactly the 26 planned runs."""
+    """--exclude drops runs by run_id substring; the dropped and remaining parts make up exactly the 12 planned runs."""
     every = [j for n in PLAN for j in expand(f"configs/experiment/{n}.yaml", JOINT, require_lr=True)]
     rest = filter_jobs(every, exclude=["regformer"])
     late = filter_jobs(every, ["regformer"])
     a, b = {j.run_id for j in rest}, {j.run_id for j in late}
-    assert (len(a), len(b)) == (18, 8) and not a & b and a | b == {j.run_id for j in every}
+    assert (len(a), len(b)) == (8, 4) and not a & b and a | b == {j.run_id for j in every}
     assert filter_jobs(every, ["_fan_a90_"], ["regformer"]) == [j for j in every if "_fan_a90_" in j.run_id
                                                                  and "regformer" not in j.run_id]
 
 
 def test_parallel_grid_waits_for_sources_and_starts_long_runs_first(tmp_path, monkeypatch):
     """One command for a source grid and its dependent grid: runs with train.init_from start only once their source
-    run is DONE; pilot measurements queue long runs first and tell which runs need a GPU of their own. (The current plan
-    trains every run from scratch; here the L-BFGS grid gets init_from through -s to test the waiting mechanism.)"""
+    run is DONE; measured costs queue long runs first and tell which runs need a GPU of their own. (The grids train
+    every run from scratch; here the L-BFGS grid gets init_from through -s to test the waiting mechanism.)"""
     sets = [f"paths.runs={tmp_path / 'runs'}"]
     jobs = filter_jobs([j for n, extra in (("base_dl", []), ("lbfgs_dl", ["train.init_from=base_dl"]))
                         for j in expand(f"configs/experiment/{n}.yaml", JOINT, sets + extra, require_lr=True,
-                                        models=["learn_unet", "regformer"])], ["_fan_a90_"])
+                                        models=["learn_densenet", "regformer"])], ["_fan_a90_"])
     seen = {}
 
     class FakeRunner:
@@ -399,101 +397,88 @@ def test_parallel_grid_waits_for_sources_and_starts_long_runs_first(tmp_path, mo
 
     monkeypatch.setattr(experiments.runner, "ProcessRunner", FakeRunner)
     codes = experiments.run_jobs(jobs, gpus=["GPU-a", "GPU-b"], per_gpu=2, gpu_mem_mb=11264.0,
-                                 job_mem_mb={"regformer": 9000.0, "learn_unet": 2900.0},
-                                 sec_per_step={"regformer": 0.9, "learn_unet": 0.2})
-    assert codes == [0, 0, 0, 0] and seen["init"]["per_gpu"] == 2
-    assert ["regformer" in k for k in seen["order"]] == [True, True, False, False]          # long runs queued first
+                                 job_mem_mb={"regformer": 9000.0, "learn_densenet": 2900.0},
+                                 sec_per_step={"regformer": 0.9, "learn_densenet": 0.2})
+    assert codes == [0, 0, 0] and seen["init"]["per_gpu"] == 2
+    assert ["regformer" in k for k in seen["order"]] == [True, False, False]                # long runs queued first
     w = seen["weights"]
     assert all((w[k] > 0.5) == ("regformer" in k) for k in seen["order"])                 # RegFormer alone on a GPU
-    base, lb = "base_dl_learn_unet_fan_a90_lr0.0003_s0", "lbfgs_dl_learn_unet_fan_a90_lr0.0003_s0"
+    base, lb = "base_dl_learn_densenet_fan_a90_lr0.0003_s0", "lbfgs_dl_learn_densenet_fan_a90_lr0.0003_s0"
     ready = seen["ready"]
     assert ready(base) and not ready(lb)
     d = tmp_path / "runs" / "base_dl" / base
     d.mkdir(parents=True)
-    (d / "summary.json").write_text(json.dumps({"arch": "learn_unet", "geometry": "fan_a90", "seed": 0}))
+    (d / "summary.json").write_text(json.dumps({"arch": "learn_densenet", "geometry": "fan_a90", "seed": 0}))
     (d / "best.pt").write_bytes(b"")
     # no DONE marker: the source is unfinished
     assert not ready(lb)
     (d / "DONE").write_text("{}")
-    assert ready(lb) and not ready("lbfgs_dl_regformer_fan_a90_lr0.0001_s0")
+    assert ready(lb)
 
 
 def test_lr_table_rules(tmp_path):
-    base = {"exp": "x", "grid": {"model": ["configs/model/learn_cnn.yaml", "configs/model/learn_vit.yaml"],
+    base = {"exp": "x", "grid": {"model": ["configs/model/learn_orig.yaml", "configs/model/learn_densenet.yaml"],
                                  "geometry": ["configs/geometry/fan_a120.yaml"], "seed": [0]}}
     ok = tmp_path / "ok.yaml"
-    save_yaml({**base, "lr_table": {"cnn3": 2e-4, "vit": 5e-5}}, ok)
+    save_yaml({**base, "lr_table": {"learn_orig": 2e-4, "densenet_ed": 5e-5}}, ok)
     jobs = expand(str(ok))
-    assert [j.run_id for j in jobs] == ["x_learn_cnn_fan_a120_lr0.0002_s0", "x_learn_vit_fan_a120_lr5e-05_s0"]
+    assert [j.run_id for j in jobs] == ["x_learn_orig_fan_a120_lr0.0002_s0", "x_learn_densenet_fan_a120_lr5e-05_s0"]
     miss = tmp_path / "miss.yaml"
-    save_yaml({**base, "lr_table": {"cnn3": 2e-4}}, miss)
+    save_yaml({**base, "lr_table": {"learn_orig": 2e-4}}, miss)
     with pytest.raises(ConfigError, match="lr_table has no lr"):
         expand(str(miss))
-    assert len(expand(str(miss), models=["learn_cnn"])) == 1            # unselected models need no lr
-    for bad in ({"lr_table": {"cnn3": -1.0}}, {"lr_table": {"cnn3": 1e-4}, "grid": {**base["grid"], "lr": [1e-4]}}):
+    assert len(expand(str(miss), models=["learn_orig"])) == 1            # unselected models need no lr
+    for bad in ({"lr_table": {"learn_orig": -1.0}},
+                {"lr_table": {"learn_orig": 1e-4}, "grid": {**base["grid"], "lr": [1e-4]}}):
         f = tmp_path / "bad.yaml"
         save_yaml({**base, **bad}, f)
         with pytest.raises(ConfigError):
             ExperimentSpec.load(str(f))
     both = tmp_path / "both.yaml"                # table for models with an lr + lr_from for the rest
-    save_yaml({**base, "lr_table": {"cnn3": 2e-4}, "lr_from": "chua_quet"}, both)
+    save_yaml({**base, "lr_table": {"learn_orig": 2e-4}, "lr_from": "chua_quet"}, both)
     runs = [f"paths.runs={tmp_path}"]
     assert [j.run_id for j in expand(str(both), overrides=runs)] == [
-        "x_learn_cnn_fan_a120_lr0.0002_s0", "x_learn_vit_fan_a120_lr0.0001_s0"]          # ViT: default lr, not swept
+        "x_learn_orig_fan_a120_lr0.0002_s0", "x_learn_densenet_fan_a120_lr0.0001_s0"]          # default lr
     with pytest.raises(ConfigError, match="chua_quet"):
         expand(str(both), overrides=runs, require_lr=True)
 
 
 def test_model_update_config():
-    m = load_config(["configs/model/learn_cnn.yaml"]).require_model()
-    assert m.update == "gd" and m.update_kwargs()["update"] == "gd"             # default: LEARN as before
-    m = load_config(["configs/model/learn_cnn.yaml"], ["model.update=admm", "model.metric=sobolev",
-                                                       "model.cg_iters=7", "model.cg_tol=1e-3"]).require_model()
-    assert m.update_kwargs() == {"update": "admm", "metric": "sobolev", "lambda0": 100.0, "rho0": 1.0, "gamma0": 1.0,
-                                 "cg_iters": 7, "cg_tol": 1e-3}
-    m = load_config(["configs/model/learn_resnet.yaml"], ["model.update=lbfgs", "model.lbfgs_memory=4"]).require_model()
-    assert m.update_kwargs()["lbfgs_memory"] == 4 and m.update_tag == "lbfgs" and not m.uses_cg
+    m = load_config(["configs/model/learn_densenet.yaml"]).require_model()
+    assert m.update == "gd" and m.update_kwargs() == {"update": "gd"}          # default: first-order LEARN
+    m = load_config(["configs/model/learn_densenet.yaml"],
+                    ["model.update=lbfgs", "model.lbfgs_memory=4"]).require_model()
+    assert m.update_kwargs() == {"update": "lbfgs", "lbfgs_memory": 4, "lbfgs_damping": 0.0, "lbfgs_curv_min": 0.0}
+    assert m.update_tag == "lbfgs"
     m = load_config(["configs/model/regformer.yaml"], ["model.update=lbfgs"]).require_model()
     assert m.update_tag == "lbfgs" and m.lbfgs_memory == 13                     # default: remember every stage
-    for bad in ("model.update=newton", "model.metric=l1", "model.cg_iters=0", "model.cg_tol=-1", "model.lambda0=0",
-                "model.update=lbfgs model.metric=sobolev", "model.lbfgs_memory=0"):
+    for bad in ("model.update=newton", "model.update=cg", "model.update=admm", "model.lbfgs_memory=0",
+                "model.lbfgs_damping=1", "model.lbfgs_curv_min=-1"):
         with pytest.raises(ConfigError):
-            load_config(["configs/model/learn_cnn.yaml"], bad.split())
+            load_config(["configs/model/learn_densenet.yaml"], bad.split())
 
 
 @pytest.mark.parametrize("argv", [
-    ["eval", "cg-check", "--exp", "x_cg", "--factor", "4"], ["eval", "runs", "--exp", "e3_main", "--on-config-data"],
-    ["eval", "recheck", "--exp", "e3_main", "--on-config-data"], ["report", "phase2", "--exp", "base_dl"],
-    ["train", "grid", "configs/experiment/lbfgs_dl.yaml", "--models", "learn_resnet", "--exp-rename", "lbfgs_=x_"],
-    ["train", "pilot", "--spec", "configs/experiment/lbfgs_dl.yaml", "--tag", "_x", "--geometry", "fan_a90"],
+    ["eval", "runs", "--exp", "base_mayo", "--on-config-data"],
+    ["eval", "recheck", "--exp", "lbfgs_mayo", "--on-config-data"],
+    ["train", "grid", "configs/experiment/lbfgs_dl.yaml", "--models", "learn_densenet", "--exp-rename", "lbfgs_=x_"],
     ["train", "grid", "configs/experiment/base_dl.yaml", "configs/experiment/lbfgs_dl.yaml", "--exclude",
      "regformer", "--mem-table", "a.csv", "b.csv", "--gpus", "all", "--per-gpu", "2"],
-    ["train", "pilot", "--spec", "configs/experiment/base_dl.yaml", "--exclude", "regformer"],
 ])
-def test_cli_parses_phase2_commands(argv):
+def test_cli_parses_grid_commands(argv):
     assert callable(build_parser().parse_args(argv).func)
 
 
-def test_phase2_scripts_exist_and_reference_real_files():
-    text = Path("scripts/vast/phase2.sh").read_text(encoding="utf-8")
-    for name in PLAN:
-        assert Path(f"configs/experiment/{name}.yaml").is_file() and name in text
-    for gone in ("p0_sweep", "p1_dl", "p2_joint", "p3_cg", "p3_admm", "p4_dl"):          # old plan archived
-        assert not Path(f"configs/experiment/{gone}.yaml").exists() and gone not in text
-    for f in ("configs/data/split_joint.yaml", "configs/data/split_joint_mayo.yaml"):
-        assert f in text and Path(f).is_file()
-    assert "--exp-rename lbfgs_=ctrl_" in text and "model.update=gd" in text            # control runs (--control)
-    for name in CMP:                                                                    # CG-GLORE comparison group
-        assert Path(f"configs/experiment/{name}.yaml").is_file() and name in text
-    assert "--compare-only" in text and Path("scripts/vast/mac_push_compare.sh").is_file()
-    for name in DPMA_GRIDS:
-        assert Path(f"configs/experiment/{name}.yaml").is_file() and name in text
-    assert "CMP_EVAL=(cmp_mayo cmp_dl dpma_mayo dpma_dl)" in text                    # dpma1_* are not reported
-    assert "-g fan_a240 --sizes" in text and Path("configs/geometry/fan_a240.yaml").is_file()
-    # thousands of DeepLesion patients => thousands of cache files open at once: the script must raise the open-file
-    # limit
-    assert "ulimit -n 65536" in Path("scripts/vast/env.sh").read_text(encoding="utf-8")
-    assert Path("scripts/vast/mac_push_phase2.sh").is_file() and Path("configs/variant/joint.yaml").is_file()
-    push = Path("scripts/vast/mac_push_phase2.sh").read_text(encoding="utf-8")
-    # the three backbones with E3 source runs
-    assert "learn_unet learn_resnet learn_densenet}" in push
+def test_makefile_names_real_grids_and_experiments():
+    """Every grid file and experiment named by the Makefile exists; the evaluated experiments are the trained ones
+    (the dpma1_* first stages are not evaluated)."""
+    text = Path("Makefile").read_text(encoding="utf-8")
+    grids = re.findall(r"\$\(E\)/(\w+)\.yaml", text)
+    assert set(grids) == {p.stem for p in Path("configs/experiment").glob("*.yaml")}
+    exps = {e for line in re.findall(r"^EXPS_\w+\s*=(.*)$", text, re.M) for e in line.split()}
+    assert exps == {g for g in grids if not g.startswith("dpma1_")}
+    for name in exps:
+        assert ExperimentSpec.load(f"configs/experiment/{name}.yaml").exp == name
+    commands = "\n".join(line for line in text.splitlines() if not line.startswith("#"))      # local.yaml is optional
+    for f in re.findall(r"configs/[\w/]+\.yaml", commands):
+        assert Path(f).is_file(), f

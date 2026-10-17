@@ -15,10 +15,7 @@ from ..config.defaults import load_geometry
 from ..core.imaging.geometry import FanBeamGeometry
 from ..infra.system.runtime import select_device
 
-GEOMS_MAIN = ["fan_a90", "fan_a120", "fan_a150"]
-GEOMS_CHECK = ["fan_full", "fan_short"]
-GEOMS_HALF = ["fan_a90_half", "fan_a120_half", "fan_a150_half"]
-MODELS_MAIN = ["learn_cnn", "learn_resnet", "learn_regnet", "learn_convnext", "learn_vit"]
+GEOMS_MAIN = ["fan_a90", "fan_a120"]
 
 
 def config_parser() -> argparse.ArgumentParser:
@@ -58,7 +55,7 @@ def add_geometries(p: argparse.ArgumentParser, default: list[str], nargs: str = 
 
 
 def add_gpu_args(p: argparse.ArgumentParser) -> None:
-    """Options for running many jobs on many GPUs (pipeline run, train grid --run)."""
+    """Options for running many jobs on many GPUs (train grid --run)."""
     g = p.add_argument_group("multiple GPUs")
     g.add_argument("--gpus", nargs="+", default=None, metavar="GPU",
                    help="auto (pick the --n-gpus most idle GPUs) | all (every visible GPU, e.g. in a container) | "
@@ -73,10 +70,11 @@ def add_gpu_args(p: argparse.ArgumentParser) -> None:
     g.add_argument("--min-free-mb", type=int, default=9216, help="Minimum free memory with --allow-shared")
 
 
-def pilot_tables(tables: Sequence[str], gpus: Sequence[str]
+def mem_tables(tables: Sequence[str], gpus: Sequence[str]
                  ) -> tuple[dict[str, float], dict[str, float], float | None]:
-    """Merge `lact train pilot` tables: ({architecture: peak memory MB}, {architecture: seconds/step}, memory of the
-    smallest GPU used). An architecture present in several tables (grids, geometries) takes the LARGEST value."""
+    """Merge cost tables (CSV: model, peak_mem_mb, sec_per_step): ({architecture: peak memory MB},
+    {architecture: seconds/step}, memory of the smallest GPU used). An architecture present in several tables (grids,
+    geometries) takes the LARGEST value."""
     import pandas as pd
 
     from ..infra.system import gpus as G

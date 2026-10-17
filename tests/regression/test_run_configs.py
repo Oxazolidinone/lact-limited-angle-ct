@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +17,14 @@ from lact.config import load_config_file, to_plain
 from .conftest import GOLDEN, update_golden
 
 GOLDEN_FILE = GOLDEN / "run_configs.json"
+GRIDS = {p.stem for p in Path(__file__).resolve().parents[2].glob("configs/experiment/*.yaml")}
+MODELS = ("learn_densenet", "regformer", "learn_orig", "fbpconvnet", "lpd", "dpma")
+
+
+def _in_scope(rel: str) -> bool:
+    """Runs of the grids in configs/experiment, with the models of this repository."""
+    exp, run = Path(rel).parts[-3:-1]
+    return exp in GRIDS and run.startswith(tuple(f"{exp}_{m}_" for m in MODELS))
 
 
 def _digest(cfg) -> str:
@@ -24,7 +33,8 @@ def _digest(cfg) -> str:
 
 @pytest.mark.regression
 def test_saved_run_configs_load_unchanged(results):
-    files = sorted(results.glob("vast_results_*/outputs*/runs/*/*/config.yaml"))
+    files = [f for f in sorted(results.glob("vast_results_*/outputs*/runs/*/*/config.yaml"))
+             if _in_scope(str(f.relative_to(results)))]
     if not files:
         pytest.skip("no saved run configurations found")
     digests = {str(f.relative_to(results)): _digest(load_config_file(f)) for f in files}

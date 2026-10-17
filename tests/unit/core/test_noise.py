@@ -60,15 +60,3 @@ def test_noise_config_is_validated():
         load_config(overrides=["noise.type=poison"])
     with pytest.raises(ConfigError):
         load_config(overrides=["noise.type=poisson", "noise.I0=0"])
-
-
-@pytest.mark.parametrize(("name", "i0"), [("mayo_poisson_1e6", 1e6), ("mayo_poisson_1e5", 1e5)])
-def test_noise_variants_use_separate_outputs_but_shared_images_and_operators(name, i0):
-    base, cfg = load_config(), load_config([f"configs/variant/{name}.yaml"])
-    assert cfg.noise.type == "poisson" and i0 == cfg.noise.I0
-    assert cfg.paths.operators == base.paths.operators and cfg.data.images_h5 == base.data.images_h5
-    for key in ("outputs", "data", "runs", "eval", "tables", "figures", "baselines"):
-        assert getattr(cfg.paths, key) != getattr(base.paths, key)
-        assert cfg.paths.outputs in [getattr(cfg.paths, key), *getattr(cfg.paths, key).parents]
-    assert cfg.cache.dir is not None and cfg.cache.dir != load_config(["configs/env/server.yaml"]).cache.dir
-    assert cfg.split == base.split and cfg.train == base.train          # only the measurements differ, not the protocol

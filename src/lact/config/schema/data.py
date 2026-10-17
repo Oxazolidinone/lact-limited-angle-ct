@@ -33,7 +33,7 @@ class DetectConfig:
     n_rows: int = 1200                # number of leading projections (0.1° steps) downloaded per slice
     det_bin: int = 8                  # detector binning: 1912 -> 239 (0.5984 mm; detector/pixel ratio as LION at 1024²)
     angle_bin: int = 2                # projection binning: 0.1° -> 0.2° steps
-    flip_det: bool = False            # flip the detector axis (see experiments/analysis/detect_geometry_check.py)
+    flip_det: bool = False            # flip the detector axis (checked on full-360° slices)
     image_transform: str = "rot180"   # flip/rotation of the reference image into the projector frame (verified)
 
     def __post_init__(self):

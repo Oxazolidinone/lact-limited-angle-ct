@@ -1,4 +1,4 @@
-# JOINT data store for phase 2 (docs/PHASE2.md): Mayo/AAPM (10 patients, 3 mm DICOM) + DeepLesion (2,500 key slices
+# JOINT data store: Mayo/AAPM (10 patients, 3 mm DICOM) + DeepLesion (2,500 key slices
 # drawn at random from the official split: 2,000 train / 200 validation / 300 test, as in QN-Mixer and CG-GLORE; 16-bit
 # PNG) share ONE images.h5 and the same sinogram files. Patient ids DLxxxxxx are read from deeplesion_root, the others
 # as DICOM from data.dicom_root (set in configs/env/server.yaml or configs/local.yaml).

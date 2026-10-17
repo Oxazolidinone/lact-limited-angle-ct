@@ -93,7 +93,7 @@ def test_damping_reaches_the_models_from_config(small_projector):
     from lact.services.factories import model_for
 
     base = ["data.img_size_rec=32", "model.K=4", "model.update=lbfgs"]
-    for files, small in ((["configs/model/learn_cnn.yaml"], ["model.regularizer.channels=8"]),
+    for files, small in ((["configs/model/learn_orig.yaml"], ["model.regularizer.channels=8"]),
                          (["configs/model/regformer.yaml"], ["model.regularizer.dim=8", "model.regularizer.heads=2"])):
         plain = model_for(load_config(files, base + small), small_projector)
         # a large eta makes sure some pair is damped (the pure data step is fairly curved; a small eta changes nothing)
@@ -109,4 +109,4 @@ def test_damping_reaches_the_models_from_config(small_projector):
             a, b = plain.eval()(y, torch.zeros_like(x)), damped.eval()(y, torch.zeros_like(x))
         assert torch.isfinite(b).all() and not torch.allclose(a, b)
     with pytest.raises(ConfigError):
-        load_config(["configs/model/learn_cnn.yaml"], ["model.update=lbfgs", "model.lbfgs_damping=1.0"])
+        load_config(["configs/model/learn_orig.yaml"], ["model.update=lbfgs", "model.lbfgs_damping=1.0"])

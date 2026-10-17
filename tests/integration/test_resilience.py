@@ -26,7 +26,7 @@ def cfg(tmp_path_factory, small_geom):
     fake_data.make_fake_dicom(tmp / "dicom", n_slices=2, size=64)
     out = tmp / "out"
     paths = [f"paths.{k}={out / k}" for k in ("data", "operators", "runs", "eval", "tables", "figures", "baselines")]
-    c = load_config(["configs/model/learn_cnn.yaml"], paths + [
+    c = load_config(["configs/model/learn_orig.yaml"], paths + [
         f"paths.outputs={out}", f"data.dicom_root={tmp / 'dicom'}", "data.img_size_sim=64", "data.img_size_rec=32",
         f"data.images_h5={out}/data/images.h5", f"data.stats_json={out}/data/stats.json",
         f"data.slices_json={out}/data/slices.json", "model.K=2", "model.regularizer.channels=4",

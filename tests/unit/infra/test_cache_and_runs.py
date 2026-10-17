@@ -56,9 +56,9 @@ def test_array_cache_roundtrip(tmp_path):
 
 
 def test_filter_jobs():
-    jobs = [Job("e3_learn_cnn_fan_a90_s0", "todo"), Job("e3_learn_convnext_fan_a120_s0", "done")]
+    jobs = [Job("base_mayo_learn_densenet_fan_a90_s0", "todo"), Job("base_mayo_regformer_fan_a120_s0", "done")]
     assert filter_jobs(jobs, None) == jobs
-    assert [j.run_id for j in filter_jobs(jobs, ["convnext"])] == ["e3_learn_convnext_fan_a120_s0"]
+    assert [j.run_id for j in filter_jobs(jobs, ["regformer"])] == ["base_mayo_regformer_fan_a120_s0"]
     assert not jobs[1].pending and Job("x", "oom").pending is False
 
 
@@ -77,7 +77,8 @@ def test_run_status_markers(tmp_path):
 
 @pytest.mark.parametrize("argv", [
     ["data", "download-mayo", "--dest", "/tmp/x", "--no-extract"], ["data", "stage", "-g", "fan_a90"],
-    ["train", "status"], ["train", "grid", "configs/experiment/e3_main.yaml", "--match", "cnn", "--max-hours", "2"],
+    ["train", "status"],
+    ["train", "grid", "configs/experiment/base_mayo.yaml", "--match", "densenet", "--max-hours", "2"],
 ])
 def test_new_cli_parses(argv):
     assert callable(build_parser().parse_args(argv).func)

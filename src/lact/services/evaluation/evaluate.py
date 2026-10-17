@@ -15,7 +15,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from ...config import Config, ExperimentSpec, load_config_file, load_geometry
+from ...config import Config, load_config_file
 from ...core.imaging.geometry import FanBeamGeometry
 from ...core.metrics import all_metrics, body_mask
 from ...core.operators import SparseFanBeam
@@ -91,7 +91,7 @@ def _run_info(cfg: Config, run: RunStore, g_test: FanBeamGeometry, split: str, w
             "lr": float(cfg.train.lr), "split": split, "checkpoint": which,
             "status": run.summary().get("status", "unknown"), "n_params": cfg.derived.get("n_params"),
             # update rule and split used for TRAINING (tells which dataset the model learned from)
-            "update": m.update_tag, "metric": m.metric if m.uses_cg else "", "train_split": cfg.split.name,
+            "update": m.update_tag, "metric": "", "train_split": cfg.split.name,
             # source run whose checkpoint this run loaded at start (run_id), empty when trained from scratch
             "init_from": run.summary().get("init_from") or ""}
 
@@ -155,29 +155,6 @@ def evaluate_experiments(cfg: Config, exps: Sequence[str] = (), run_dirs: Sequen
     return out
 
 
-def cross_geometry(cfg: Config, spec_file: str, split: str = "test", device="auto", **kw) -> list[pd.DataFrame]:
-    """E6: models trained at geometry g1 run on data of g2 != g1 (no retraining)."""
-    spec = ExperimentSpec.load(spec_file)
-    if not spec.source_exp:
-        raise ValueError(f"{spec_file}: missing source_exp")
-    test_geoms = [load_geometry(g) for g in spec.test_geometries]
-    out = []
-    for run in list_runs(cfg.paths.runs, spec.source_exp):
-        if run.status != "done":
-            continue
-        g_train = load_config_file(run.config_file).require_geometry()
-        if g_train.name not in spec.train_geometries:
-            continue
-        for g in test_geoms:
-            if g.name == g_train.name:
-                continue  # same geometry = the E3 result
-            df = evaluate_run(run, split, "best", device, test_geometry=g, **kw)
-            if df is not None:
-                out.append(df)
-    return out
-
-
-# ---------------------------------------------------------------------------- baseline
 def evaluate_baseline(cfg: Config, name: str, geom: FanBeamGeometry, split: str = "val", device="auto",
                       save_pred: bool = True, batch_size: int = 4, limit: int | None = None,
                       force_test: bool = False, overwrite: bool = False) -> pd.DataFrame | None:

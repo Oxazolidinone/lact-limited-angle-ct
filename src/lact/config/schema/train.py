@@ -32,7 +32,7 @@ class TrainConfig:
     divergence_factor: float = 100.0
     resume: bool = True
     # Initialise from the best checkpoint of a FINISHED run with the same architecture and geometry in this experiment
-    # (several names separated by commas: the first experiment with a matching run wins, e.g. "base_mayo,e3_main").
+    # (several names separated by commas: the first experiment with a matching run wins, e.g. "dpma1_mayo,dpma1_dl").
     # Parameters with matching names and shapes are loaded (regularizer, beta); parameters that exist only in the new
     # update rule (e.g. the L-BFGS alpha step) keep their initial values. Applies when a run starts, not on resume.
     init_from: str | None = None

@@ -12,12 +12,11 @@ from .registry import (
                        count_params,
                        register,
 )
-from .unrolled import METRICS, UPDATES, Unrolled, UnrolledLEARN, val_forward
+from .unrolled import UPDATES, Unrolled, UnrolledLEARN, val_forward
 
 __all__ = [
                        "COMPARED",
                        "DPMA",
-                       "METRICS",
                        "REGISTRY",
                        "UPDATES",
                        "FBPConvNet",

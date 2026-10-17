@@ -1,5 +1,5 @@
-# DPMA, stage 1 on the DeepLesion set (docs/PHASE2.md, section 10): train network M1 from scratch, 2 runs {90°, 120°}.
-# These runs only feed dpma_dl (where M1 is frozen); they are not reported in the result tables.
+# DPMA stage 1 on DeepLesion; feeds dpma_dl.
+#   lact train grid configs/experiment/dpma1_dl.yaml -c configs/variant/joint.yaml --run
 exp: dpma1_dl
 configs:
   - configs/paths.yaml

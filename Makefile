@@ -1,23 +1,27 @@
-# KLTN pipeline: LEARN deep unrolling for limited-angle CT. Every target calls the `lact` CLI (see `lact --help`).
-# Per-machine settings go in configs/local.yaml (loaded automatically), or pass CFG="-c file.yaml".
-# Data variants (Poisson noise, DeepLesion): add a file under configs/variant, e.g.
-#   make pipeline DEV=cuda CFG="-c configs/variant/mayo_poisson_1e6.yaml"
+# LACT: LEARN-DenseNet with an L-BFGS data step and the compared methods, for limited-angle CT.
+# Every target calls the `lact` CLI (see `lact --help`); per-machine settings go in configs/local.yaml.
+#   make data-joint && make train-joint && make eval-joint        # Mayo + DeepLesion
+#   make data-detect && make train-detect && make eval-detect     # measured 2DeteCT
+#   make smoke                                                    # the same steps on synthetic data, in minutes
 # Environment: .venv in the project directory if present (python3 -m venv .venv), otherwise python from PATH.
 VENV ?= .venv
 BIN   = $(if $(wildcard $(VENV)/bin/python),$(VENV)/bin/,)
 PY   ?= $(BIN)python
 LACT ?= $(PY) -m lact
-CFG  ?=
 DEV  ?= auto
-SET  ?=
-GEOMS_MAIN  = fan_a90 fan_a120 fan_a150
-GEOMS_CHECK = fan_full fan_short
-GEOMS_HALF  = fan_a90_half fan_a120_half fan_a150_half
-SETARG = $(if $(SET),-s $(SET),)
-C = $(CFG) $(SETARG) --device $(DEV)
+GPUS ?=
+GPUARG = $(if $(GPUS),--gpus $(GPUS),)
+JOINT  = -c configs/variant/joint.yaml
+DETECT = -c configs/variant/detect.yaml
+E = configs/experiment
+GRIDS_JOINT  = $(E)/base_mayo.yaml $(E)/base_dl.yaml $(E)/lbfgs_mayo.yaml $(E)/lbfgs_dl.yaml $(E)/cmp_mayo.yaml \
+               $(E)/cmp_dl.yaml $(E)/dpma1_mayo.yaml $(E)/dpma1_dl.yaml $(E)/dpma_mayo.yaml $(E)/dpma_dl.yaml
+GRIDS_DETECT = $(E)/base_dt.yaml $(E)/lbfgs_dt.yaml $(E)/cmp_dt.yaml $(E)/dpma1_dt.yaml $(E)/dpma_dt.yaml
+EXPS_JOINT   = base_mayo base_dl lbfgs_mayo lbfgs_dl cmp_mayo cmp_dl dpma_mayo dpma_dl
+EXPS_DETECT  = base_dt lbfgs_dt cmp_dt dpma_dt
 
-.PHONY: install dev test test-unit test-regression lint typecheck arch check-all inspect data operators check simulate tune-tv \
-        pipeline pilot status source-zip download-mayo download-deeplesion e2 select-lr e3 e4 e5 e6 freeze eval cross cost tables figures analysis demo smoke clean-smoke
+.PHONY: install dev test test-unit test-regression lint typecheck arch check-all \
+        data-joint data-detect train-joint train-detect eval-joint eval-detect smoke clean-smoke
 
 install:
 	$(PY) -m pip install -r requirements.txt && $(PY) -m pip install -e .
@@ -29,98 +33,64 @@ test:
 	$(PY) -m pytest -q
 test-unit:            # fast, needs neither ASTRA nor data
 	$(PY) -m pytest -q tests/unit
-test-regression:      # pins outputs of finished runs; needs ../ket-qua or LACT_RESULTS_DIR (skips otherwise)
+test-regression:      # pins outputs of finished runs; needs LACT_RESULTS_DIR (skipped otherwise)
 	$(PY) -m pytest -q tests/regression
 lint:
-	$(BIN)ruff check src tests scripts experiments
+	$(BIN)ruff check src tests
 typecheck:
 	$(BIN)mypy
 arch:                 # check the dependency rules between layers
 	$(BIN)lint-imports
 check-all: lint typecheck arch test
 
-# ---------------------------------------------------------------- data and operators (weeks 1-2)
-download-mayo:        # download Mayo 2016 (full_3mm) from AAPM's public Box into the parent folder of data.dicom_root
-	$(LACT) data download-mayo $(C)
-download-deeplesion:  # second dataset: download zips 1-2 (~8 GiB) from NIH's Box, then split by patient
-	$(LACT) data download-deeplesion -c configs/data/deeplesion.yaml $(SETARG)
-	$(LACT) data split-deeplesion -c configs/data/deeplesion.yaml $(SETARG)
-inspect:
-	$(LACT) data inspect $(C)
-data:
-	$(LACT) data preprocess $(C)
-operators:
-	$(LACT) ops build $(C) -g $(GEOMS_MAIN) $(GEOMS_CHECK) $(GEOMS_HALF)
-check:                # E0 + E1
-	$(LACT) ops check $(C)
-	$(LACT) ops density $(C)
-simulate:
-	$(LACT) data simulate $(C) -g $(GEOMS_MAIN)
-tune-tv:
-	$(LACT) eval tune-tv $(C) -g $(GEOMS_MAIN)
-pilot:                # Gate 1: measure sec/step, estimate GPU-hours
-	$(LACT) train pilot $(C)
-status:               # progress of the training runs (heartbeat/summary)
-	$(LACT) train status $(C)
-source-zip:           # dist/kltn-lact.zip to move the source code to the server
-	$(PY) scripts/pack_source.py
+# ---------------------------------------------------------------- data: Mayo + DeepLesion (joint store), 2DeteCT
+data-joint:
+	$(LACT) data download-mayo $(JOINT)
+	$(LACT) data download-deeplesion $(JOINT) --key-slices
+	$(LACT) data preprocess $(JOINT) configs/data/split_joint.yaml
+	$(LACT) ops build $(JOINT) -g fan_a90 fan_a120
+	$(LACT) ops build $(JOINT) -g fan_a240 --sizes 256
+	$(LACT) data simulate $(JOINT) configs/data/split_joint.yaml -g fan_a90 fan_a120 --device $(DEV)
+	$(LACT) eval tune-tv $(JOINT) configs/data/split_joint.yaml -g fan_a90 --device $(DEV)
+	$(LACT) eval tune-tv $(JOINT) configs/data/split_joint.yaml -g fan_a120 --device $(DEV)
+data-detect:
+	$(LACT) data download-2detect -c configs/env/server.yaml configs/data/detect.yaml
+	$(LACT) data preprocess $(DETECT) configs/data/split_detect.yaml
+	$(LACT) ops build $(DETECT) -g dt_a90 dt_a120 dt_a90_to240 dt_a120_to240 --sizes 256
+	$(LACT) data simulate $(DETECT) configs/data/split_detect.yaml -g dt_a90 dt_a120 --device $(DEV)
+	$(LACT) eval tune-tv $(DETECT) configs/data/split_detect.yaml -g dt_a90 --device $(DEV)
+	$(LACT) eval tune-tv $(DETECT) configs/data/split_detect.yaml -g dt_a120 --device $(DEV)
 
-WORKERS ?= 1
-PIPELINE_ARGS ?=
-pipeline:             # runs the steps in dependency order; e.g. make pipeline DEV=cuda (reads configs/local.yaml)
-	$(LACT) pipeline run $(C) --workers $(WORKERS) $(PIPELINE_ARGS)
+# ---------------------------------------------------------------- training (resumable; DONE runs are skipped)
+train-joint:
+	$(LACT) train grid $(GRIDS_JOINT) $(JOINT) --run $(GPUARG)
+train-detect:
+	$(LACT) train grid $(GRIDS_DETECT) $(DETECT) --run $(GPUARG)
 
-# ---------------------------------------------------------------- training (weeks 5-8)
-e2:
-	$(LACT) train grid configs/experiment/e2_sweep.yaml $(C) --run
-select-lr:
-	$(LACT) report select-lr $(C) --exp e2_sweep
-e3 e4 e5: %:
-	$(LACT) train grid $(firstword $(wildcard configs/experiment/$@_*.yaml)) $(C) --run
+# ---------------------------------------------------------------- test evaluation (per-slice metrics)
+eval-joint:
+	$(LACT) eval freeze $(JOINT) --note "configuration frozen before opening the test split"
+	$(LACT) eval runs $(JOINT) configs/data/split_joint.yaml --exp $(EXPS_JOINT) --split test --device $(DEV)
+	$(LACT) eval baselines $(JOINT) configs/data/split_joint.yaml --split test -g fan_a90 fan_a120 --device $(DEV)
+eval-detect:
+	$(LACT) eval freeze $(DETECT) --note "configuration frozen before opening the test split"
+	$(LACT) eval runs $(DETECT) configs/data/split_detect.yaml --exp $(EXPS_DETECT) --split test --device $(DEV)
+	$(LACT) eval baselines $(DETECT) configs/data/split_detect.yaml --split test -g dt_a90 dt_a120 --device $(DEV)
 
-# ---------------------------------------------------------------- evaluation and analysis (weeks 9-10)
-freeze:
-	$(LACT) eval freeze $(C) --note "configuration frozen before opening the test split"
-eval:
-	$(LACT) eval runs $(C) --exp e3_main e4_matched e5_a150 --split test
-	$(LACT) eval baselines $(C) -g $(GEOMS_MAIN) --split test
-e6 cross:
-	$(LACT) eval cross configs/experiment/e6_crossgeo.yaml $(C) --split test
-cost:
-	$(LACT) eval cost $(C) --exp e3_main e4_matched
-tables:
-	$(LACT) report tables $(C) --split test
-figures:
-	$(LACT) report figures $(C) --split test
-analysis:
-	$(LACT) report analysis $(C) --split test
-demo:
-	$(LACT) demo $(CFG)
-
-# ---------------------------------------------------------------- end-to-end smoke run on fake data
+# ---------------------------------------------------------------- end-to-end run on synthetic data (not for results)
 SMOKE = -c configs/env/smoke_fake.yaml
 SMOKE_TRAIN = model.K=3 train.max_steps=6 train.limit_val=3
 smoke:
 	$(LACT) data fake --out data_raw/fake_mayo --n-slices 6 --size 128
 	$(LACT) data preprocess $(SMOKE) --overwrite
-	$(LACT) ops build $(SMOKE) -g $(GEOMS_MAIN) $(GEOMS_CHECK) $(GEOMS_HALF)
-	$(LACT) ops check $(SMOKE)
-	$(LACT) data simulate $(SMOKE) -g $(GEOMS_MAIN) --overwrite
-	$(LACT) ops density $(SMOKE) --n-val 3 --tv-iters 30
-	$(LACT) eval tune-tv $(SMOKE)
-	$(LACT) train grid configs/experiment/e2_sweep.yaml $(SMOKE) -s $(SMOKE_TRAIN) --run
-	$(LACT) report select-lr $(SMOKE)
-	$(LACT) train grid configs/experiment/e3_main.yaml $(SMOKE) -s $(SMOKE_TRAIN) --run
-	$(LACT) train grid configs/experiment/e4_matched.yaml $(SMOKE) -s $(SMOKE_TRAIN) --run
-	$(LACT) train grid configs/experiment/e5_a150.yaml $(SMOKE) -s $(SMOKE_TRAIN) --run
+	$(LACT) ops build $(SMOKE) -g fan_a90
+	$(LACT) data simulate $(SMOKE) -g fan_a90 --overwrite
+	$(LACT) eval tune-tv $(SMOKE) -g fan_a90 --device $(DEV)
+	$(LACT) train run $(SMOKE) -m learn_densenet -g fan_a90 -s $(SMOKE_TRAIN) exp=smoke --device $(DEV)
+	$(LACT) train run $(SMOKE) -m learn_densenet -g fan_a90 -s $(SMOKE_TRAIN) exp=smoke_lbfgs \
+	        model.update=lbfgs model.lbfgs_damping=0.5 --device $(DEV)
 	$(LACT) eval freeze $(SMOKE) --note smoke
-	$(LACT) eval runs $(SMOKE) --exp e3_main e4_matched e5_a150 --split test
-	$(LACT) eval baselines $(SMOKE) -g $(GEOMS_MAIN) --split test
-	$(LACT) eval cross configs/experiment/e6_crossgeo.yaml $(SMOKE) --split test
-	$(LACT) eval cost $(SMOKE) --exp e3_main e4_matched --iters 5 --warmup 1
-	$(LACT) report tables $(SMOKE) --split test --n-boot 300
-	$(LACT) report figures $(SMOKE) --split test
-	$(LACT) report analysis $(SMOKE) --split test --n-erf 4 --n-stage 3
-
+	$(LACT) eval runs $(SMOKE) --exp smoke smoke_lbfgs --split test --device $(DEV)
+	$(LACT) eval baselines $(SMOKE) -g fan_a90 --split test --device $(DEV)
 clean-smoke:
 	rm -rf outputs_smoke data_raw/fake_mayo

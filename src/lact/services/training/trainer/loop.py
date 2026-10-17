@@ -18,7 +18,6 @@ import math
 import os
 import time
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset
 
@@ -217,19 +216,14 @@ class Trainer:
         dl = DataLoader(self.ds_val, batch_size=int(self.t.val_batch_size), shuffle=False, collate_fn=collate,
                         num_workers=0)
         acc: dict[str, list[torch.Tensor]] = {"val_psnr": [], "val_ssim": [], "val_rmse": [], "val_dc": []}
-        cg: list[float] = []
         for b in dl:
             y, x0, x = b["y"].to(self.device), b["x0"].to(self.device), b["x"].to(self.device)
             out = val_forward(self.model)(y, x0)
-            cg.append(self.model.cg_iters_mean())
             acc["val_psnr"].append(psnr(out, x).cpu())
             acc["val_ssim"].append(ssim(out, x).cpu())
             acc["val_rmse"].append(rmse(out, x).cpu())
             acc["val_dc"].append(self.P.data_residual(out, y).cpu())
-        res = {k: float(torch.cat(v).mean()) for k, v in acc.items()}
-        if self.model.uses_cg:                 # mean CG iterations per stage (stopped by cg_tol or the cap)
-            res["val_cg_iters"] = float(np.mean(cg))
-        return res
+        return {k: float(torch.cat(v).mean()) for k, v in acc.items()}
 
     # ------------------------------------------------------------------ training
     def _epoch_loader(self, epoch: int, start_batch: int = 0) -> DataLoader:
@@ -312,9 +306,8 @@ class Trainer:
                 self.last_sec_per_step = (time.perf_counter() - t_log) / max(1, n_since)
                 t_log, n_since = time.perf_counter(), 0
                 lr = self.opt.param_groups[0]["lr"]
-                cg = {"cg_iters": self.model.cg_iters_mean()} if self.model.uses_cg else {}
                 self.logger.log_step(self.step, loss=lv, lr=lr, grad_norm=gn, sec_per_step=self.last_sec_per_step,
-                                     peak_mem_mb=_peak_mem_mb(dev) or 0.0, **cg)
+                                     peak_mem_mb=_peak_mem_mb(dev) or 0.0)
                 self.log.info("ep %d step %d/%d loss %.3e lr %.2e |g| %.2e %.3fs/step", p.epoch, self.step,
                               self.total_steps, lv, lr, gn, self.last_sec_per_step)
                 self._heartbeat("running", loss=lv, lr=lr)
@@ -393,7 +386,7 @@ class Trainer:
             "regularizer": m.regularizer.name, "geometry": self.geom.name, "seed": int(self.cfg.seed),
             "lr": float(self.t.lr), "exp": self.cfg.exp, "gpus": gpus, "sessions": len(self.run.sessions()),
             "grad_checkpoint": self.model.grad_checkpoint, "oom_events": self.oom_events,
-            "update": m.update_tag, "metric": m.metric if m.uses_cg else None,
+            "update": m.update_tag, "metric": None,
             "init_from": next((e.get("run_id") for e in self.run.events() if e.get("event") == "init_from"), None),
             # > 1: the GPU was shared with other runs at times, so training time is not directly comparable
             "jobs_per_gpu": max([int(s.get("jobs_per_gpu") or 1) for s in self.run.sessions()] or [1]),

@@ -1,6 +1,6 @@
 """Trained checkpoints must load and reproduce their outputs bit for bit (up to float noise).
 
-One run per architecture that appears in the thesis tables. Each case rebuilds the model from the run's own
+One run per method of the comparison table (2DeteCT, 90 degrees). Each case rebuilds the model from the run's own
 ``config.yaml``, loads ``best.pt``, reconstructs a fixed synthetic body phantom and compares the result with the
 golden output recorded before the refactor. This catches renamed module attributes (``state_dict`` keys), changed
 layer order, and any change in the projector, FBP or data-consistency steps.
@@ -8,7 +8,6 @@ layer order, and any change in the projector, FBP or data-consistency steps.
 from __future__ import annotations
 
 import dataclasses
-import importlib.util
 from pathlib import Path
 
 import numpy as np
@@ -25,26 +24,19 @@ from .conftest import GOLDEN, require, update_golden
 
 IMG = 256
 D16 = "vast_results_2026-10-16"
-D12 = "vast_results_2026-10-12"
 
 # (golden name, run directory relative to the results root, attribute overrides applied after loading)
 CASES = [
     ("lbfgs_densenet_dt", f"{D16}/outputs_detect/runs/lbfgs_dt/lbfgs_dt_learn_densenet_dt_a90_lr0.0003_s0", {}),
     ("regformer_dt", f"{D16}/outputs_detect/runs/base_dt/base_dt_regformer_dt_a90_lr0.0001_s0", {}),
-    ("cg_glore_dt", f"{D16}/outputs_detect/runs/cmp_dt/cmp_dt_cg_glore_dt_a90_lr0.0001_s0", {}),
     ("learn_orig_dt", f"{D16}/outputs_detect/runs/cmp_dt/cmp_dt_learn_orig_dt_a90_lr0.0001_s0", {}),
     ("lpd_dt", f"{D16}/outputs_detect/runs/cmp_dt/cmp_dt_lpd_dt_a90_lr0.0001_s0", {}),
     ("fbpconvnet_dt", f"{D16}/outputs_detect/runs/cmp_dt/cmp_dt_fbpconvnet_dt_a90_lr0.0001_s0", {}),
     # Three refinement iterations exercise the inference-time refinement path without its full CPU cost.
     ("dpma_dt", f"{D16}/outputs_detect/runs/dpma_dt/dpma_dt_dpma_dt_a90_lr0.0001_s0", {"refine_iters": 3}),
-    ("resnet_gd_mayo", f"{D12}/outputs_joint/runs/e3_main/e3_main_learn_resnet_fan_a90_lr0.0003_s2", {}),
-    ("unet_lbfgs_mayo", f"{D12}/outputs_joint/runs/lbfgs_mayo/lbfgs_mayo_learn_unet_fan_a90_lr0.0003_s0", {}),
 ]
 
-# CG-GLORE is not part of the public repository; its case is skipped where the module is absent
-OPTIONAL = {"cg_glore_dt": pytest.mark.skipif(importlib.util.find_spec("lact.core.models.baselines.cg_glore") is None,
-                                              reason="CG-GLORE is not distributed with this copy")}
-PARAMS = [pytest.param(*c, id=c[0], marks=OPTIONAL.get(c[0], ())) for c in CASES]
+PARAMS = [pytest.param(*c, id=c[0]) for c in CASES]
 
 
 def _local_config(run_dir: Path, operators: Path):

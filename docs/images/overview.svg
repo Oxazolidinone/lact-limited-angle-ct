@@ -56,8 +56,8 @@
   <!-- regularizer -->
   <rect x="374" y="190" width="300" height="74" rx="10" fill="#fdf2e6" stroke="#d9822b" stroke-width="1.4"/>
   <text x="388" y="212" font-size="13" font-weight="bold" fill="#9a5414">Learned regularizer  β<tspan font-size="9" dy="3">k</tspan><tspan dy="-3"> R</tspan><tspan font-size="9" dy="3">θ</tspan><tspan dy="-3">(xᵏ)</tspan></text>
-  <text x="388" y="232" font-size="12" fill="#1f2530">15 blocks: CNN · U-Net · ResNet · ResNeXt/RegNet</text>
-  <text x="388" y="250" font-size="12" fill="#1f2530">DenseNet · EfficientNet · ConvNeXt · ViT (± RegNet)</text>
+  <text x="388" y="232" font-size="12" fill="#1f2530">DenseNet encoder–decoder, 4 levels (32–256 ch.)</text>
+  <text x="388" y="250" font-size="12" fill="#1f2530">one dense block per level · GroupNorm · 2.70M</text>
 
   <!-- combine -->
   <path d="M674,113 C700,113 704,150 716,160" stroke="#2f6fd0" stroke-width="1.6" fill="none" marker-end="url(#arrowBlue)"/>

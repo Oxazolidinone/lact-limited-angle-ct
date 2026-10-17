@@ -1,4 +1,5 @@
-# Main model on 2DeteCT: LEARN-DenseNet + L-BFGS (K = 14), same recipe as lbfgs_mayo / lbfgs_dl.
+# LEARN-DenseNet with the L-BFGS data step on 2DeteCT (K = 14); same recipe as lbfgs_mayo.
+#   lact train grid configs/experiment/lbfgs_dt.yaml -c configs/variant/detect.yaml --run
 exp: lbfgs_dt
 configs:
   - configs/paths.yaml

@@ -1,7 +1,6 @@
-"""Four-level encoder-decoder shared by every staged architecture family (U-Net, ResNet, ResNeXt/RegNet,
-DenseNet, EfficientNet, ConvNeXt, and the ViT-RegNet hybrid).
+"""Four-level encoder-decoder of the staged regularizers (LEARN-DenseNet).
 
-Families differ only in their block and downsampling; the stem, the decoder (ConvTranspose 2x2 + skip addition +
+A family is defined by its block and downsampling; the stem, the decoder (ConvTranspose 2x2 + skip addition +
 block) and the output layer are shared. Widths and depths per level come from ``layout.stage_layout`` (set by hand or
 by the RegNet rule).
 """
@@ -19,7 +18,7 @@ class EncoderDecoder(nn.Module):
     def __init__(self, channels: list[int], depths: list[int], block: Callable[[int], nn.Module],
                  down: Callable[[int, int], nn.Module], stem: nn.Module, dec_depth: int = 1,
                  deepest: nn.Module | None = None):
-        """``deepest``: module replacing the blocks of the deepest level (e.g. the ViT-RegNet Transformer core)."""
+        """``deepest``: module replacing the blocks of the deepest level (e.g. a Transformer core)."""
         super().__init__()
         if len(channels) != len(depths):
             raise ValueError("channels and depths must have the same length")

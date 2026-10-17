@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 import torch
 
-from lact.core.analysis import model_cost
 from lact.core.imaging.intensity import block_mean
 from lact.core.imaging.phantom import shepp_logan
 from lact.core.metrics import psnr
@@ -72,7 +71,7 @@ def test_fbp_adjoint_and_differentiable_apply(small_geom):
 
 def test_default_architecture_matches_the_published_one():
     m = RegFormer()
-    assert isinstance(m, Unrolled) and m.K == 10 and not m.uses_cg and m.cg_iters_mean() == 0.0
+    assert isinstance(m, Unrolled) and m.K == 10
     assert count_params(m) == 2_678_498 and m.regularizer_params() == 2_678_488     # CG-GLORE paper: 10 stages, 2.7M
     assert [type(s) for s in m.stages] == [ConvStage, SwinStage] * 5                # alternating convolution / Swin
     first, mid, last = m.stages[0], m.stages[2], m.stages[9]
@@ -165,16 +164,6 @@ def test_data_step_uses_filtered_backprojection(op_dir, small_geom, small_projec
         moved_truth = float((m(y, x) - x).abs().mean())
         moved_fbp = float((out - x0).abs().mean())
     assert moved_truth < 0.5 * moved_fbp
-
-
-def test_cost_counts_every_stage(small_projector):
-    m = build_regformer(TINY, K=4, projector=small_projector)
-    c = model_cost(m, N)
-    assert c["K"] == 4 and c["n_params"] == count_params(m) and c["n_params_regularizer"] == c["n_params"] - 4
-    two = model_cost(build_regformer(TINY, K=2), N)["gflops_regularizer_total"]
-    # more stages, more FLOPs (stages differ, no K multiplier)
-    assert 0 < two < c["gflops_regularizer_total"]
-    assert c["gflops_regularizer_per_stage"] == pytest.approx(c["gflops_regularizer_total"] / 4)
 
 
 def test_overfit_one_slice(op_dir, small_geom, small_projector):

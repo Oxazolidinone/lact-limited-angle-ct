@@ -1,6 +1,6 @@
 """Read GPU status with nvidia-smi and pick idle GPUs (shared servers).
 
-Standard library only and Python 3.9 compatible, so ``scripts/server/pick_gpus.py`` can load this file with the host's
+Standard library only and Python 3.9 compatible, so a helper script can load this file with the host's
 Python without installing the project. Never initialises CUDA, sets environment variables or occupies a GPU.
 
 GPUs are identified by UUID (``GPU-...``) rather than index: CUDA's order (FASTEST_FIRST by default) can differ from

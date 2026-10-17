@@ -17,7 +17,7 @@ data_raw/
 *.pt
 runs/
 wandb/
-outputs_smoke/
+outputs_*/
 configs/local.yaml
 .mypy_cache/
 .import_linter_cache/

@@ -1,7 +1,6 @@
-# DPMA, stage 2 on the Mayo set (docs/PHASE2.md, section 10): load M1 from the dpma1_mayo run of the same geometry
-# (frozen), then train network M2 from scratch, 2 runs {90°, 120°}. These are the two stages of ONE method as in the
-# original code, not further training of an existing model. DPMA's results in the tables are these runs (evaluation adds
-# 300 refinement iterations).
+# DPMA stage 2 on Mayo: loads M1 from the dpma1_mayo run of the same geometry (frozen) and trains network M2 from
+# scratch. Evaluation adds the 300 non-learned refinement iterations of the original code.
+#   lact train grid configs/experiment/dpma_mayo.yaml -c configs/variant/joint.yaml --run
 exp: dpma_mayo
 configs:
   - configs/paths.yaml

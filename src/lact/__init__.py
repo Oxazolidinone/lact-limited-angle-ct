@@ -14,7 +14,7 @@ from __future__ import annotations
 import importlib
 from typing import TYPE_CHECKING, Any
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 # public name -> module that defines it (imported lazily by __getattr__)
 _API = {

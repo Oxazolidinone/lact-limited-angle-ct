@@ -1,5 +1,6 @@
-# DPMA stage 1 on 2DeteCT (as dpma1_dl). A 240° target per geometry (target_name: auto ->
+# DPMA stage 1 on 2DeteCT, with a 240° target per geometry (target_name: auto ->
 # configs/geometry/dt_a90_to240.yaml, dt_a120_to240.yaml); sino_scale = 76.8 / field of view 116.528 mm.
+#   lact train grid configs/experiment/dpma1_dt.yaml -c configs/variant/detect.yaml --run
 exp: dpma1_dt
 configs:
   - configs/paths.yaml

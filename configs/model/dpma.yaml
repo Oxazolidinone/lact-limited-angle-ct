@@ -1,6 +1,6 @@
 # DPMA (Wu et al., Scientific Reports 2025; original code github.com/jia-W-w/DPKA), rebuilt in
-# src/lact/core/models/baselines/dpma/ and adapted to limited angle (see its package docstring and docs/PHASE2.md,
-# section 10). NOT part of the LEARN framework. Trained in TWO stages as in the original code, one run per stage:
+# src/lact/core/models/baselines/dpma/ and adapted to limited angle (see its package docstring).
+# NOT part of the LEARN framework. Trained in TWO stages as in the original code, one run per stage:
 #   stage 1: network M1 (shared by sinogram and image)          -> grids dpma1_mayo / dpma1_dl
 #   stage 2: M1 frozen (loaded from the stage-1 run), train M2   -> grids dpma_mayo / dpma_dl (train.init_from)
 # At evaluation the stage-2 run adds 300 refinement iterations without learning. Each network has 8.06M parameters (the

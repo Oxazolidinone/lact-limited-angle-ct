@@ -1,5 +1,5 @@
 """End-to-end pipeline run on small synthetic DICOM data, through the same services the CLI uses:
-DICOM -> preprocessing -> matrices -> simulation -> dataset -> training -> evaluation -> aggregation."""
+DICOM -> preprocessing -> matrices -> simulation -> dataset -> training -> evaluation."""
 from __future__ import annotations
 
 import dataclasses
@@ -18,7 +18,6 @@ from lact.services.data import prep as data_prep
 from lact.services.data import simulation
 from lact.services.evaluation import evaluate as evaluation
 from lact.services.factories import dataset_for, results_store
-from lact.services.reporting import per_method, per_run
 from lact.services.training.trainer import Trainer
 
 
@@ -29,7 +28,7 @@ def cfg(tmp_path_factory, small_geom):
     fake_data.make_fake_dicom(tmp / "dicom", n_slices=3, size=64)
     out = tmp / "out"
     paths = [f"paths.{k}={out / k}" for k in ("data", "operators", "runs", "eval", "tables", "figures", "baselines")]
-    c = load_config(["configs/model/learn_cnn.yaml"], paths + [
+    c = load_config(["configs/model/learn_orig.yaml"], paths + [
         f"paths.outputs={out}", f"data.dicom_root={tmp / 'dicom'}", "data.img_size_sim=64", "data.img_size_rec=32",
         f"data.images_h5={out}/data/images.h5", f"data.stats_json={out}/data/stats.json",
         f"data.slices_json={out}/data/slices.json", "data.augment=hflip",
@@ -81,8 +80,7 @@ def test_train_resume_eval(cfg):
     store = results_store(cfg)
     assert len(store.find(split="test", exp="pytest")) == 1
     assert len(store.load_slices(split="test")) == 6
-    assert set(per_run(df).columns) >= {"psnr", "ssim", "rmse"}
-    assert per_method(df).n_seeds.iloc[0] == 1
+    assert {"psnr", "ssim", "rmse", "run_id", "pid", "idx"} <= set(df.columns)
 
 
 def test_determinism(cfg, tmp_path):

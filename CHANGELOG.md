@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.0 (2026-10-17)
+
+The repository now holds only what the comparison of LEARN-DenseNet with the published methods needs: data
+preparation, training, evaluation and their tests. Run names, YAML keys, `nn.Module` attribute names and CSV columns
+of the kept methods are unchanged, so their finished runs still load (`tests/regression`).
+
+### Added
+
+- `make smoke`: data preparation, training (first-order and L-BFGS) and evaluation on synthetic data.
+- `make data-*`, `train-*`, `eval-*` targets for the joint Mayo + DeepLesion store and for 2DeteCT.
+
+### Changed
+
+- `base_mayo` and `base_dl` train first-order LEARN-DenseNet next to RegFormer; `lbfgs_*` grids train LEARN-DenseNet
+  only. In the thesis, the first-order LEARN-DenseNet run on Mayo came from the first-phase Mayo grid (same model,
+  recipe and training split).
+- `--mem-table` takes any CSV with the columns `model, peak_mem_mb, sec_per_step`.
+
+### Removed
+
+- The other regularization blocks of the thesis benchmark (U-Net, ResNet, ResNeXt/RegNet, EfficientNet, ConvNeXt, ViT
+  and their RegNet layouts) and the CG and ADMM update rules; `model.update` is `gd` or `lbfgs`.
+- The first-phase experiments E0–E6 (operator checks, angular sampling, learning-rate sweep, matched sizes, 150°
+  scans, cross-geometry evaluation, cost measurement) and their commands: `lact pipeline`, `lact train pilot | plan`,
+  `lact ops check | density`, `lact eval cross | cost | cg-check`.
+- Reporting (`lact report`, `viz`), the demo (`lact demo`), `experiments/`, `scripts/` and the operational documents.
+
 ## 0.3.0 (2026-10-17)
 
 A refactor for readability and maintenance. Results do not change: run names, the outputs layout, YAML keys,

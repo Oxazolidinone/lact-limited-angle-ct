@@ -1,6 +1,0 @@
-# E4 parameter-matched group (~2M): RegNetY-200MF cut to 10 blocks (d = [1, 1, 4, 4]) ~2.04M.
-_base_: [learn_regnet.yaml]
-model:
-  arch: learn_regnet_pm2m
-  regularizer:
-    regnet: {depth: 10}

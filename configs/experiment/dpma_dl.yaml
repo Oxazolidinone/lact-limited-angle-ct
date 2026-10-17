@@ -1,7 +1,5 @@
-# DPMA, stage 2 on the DeepLesion set (docs/PHASE2.md, section 10): load M1 from the dpma1_dl run of the same geometry
-# (frozen), then train network M2 from scratch, 2 runs {90°, 120°}. These are the two stages of ONE method as in the
-# original code, not further training of an existing model. DPMA's results in the tables are these runs (evaluation adds
-# 300 refinement iterations).
+# DPMA stage 2 on DeepLesion; loads M1 from dpma1_dl.
+#   lact train grid configs/experiment/dpma_dl.yaml -c configs/variant/joint.yaml --run
 exp: dpma_dl
 configs:
   - configs/paths.yaml

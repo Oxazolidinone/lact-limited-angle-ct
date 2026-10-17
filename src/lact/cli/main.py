@@ -2,12 +2,9 @@
 
     lact data     download-mayo | download-deeplesion | split-deeplesion | download-2detect | split-2detect |
                   inspect | preprocess | simulate | stage | fake
-    lact ops      build | check | density
-    lact train    run | grid | pilot | plan | status
-    lact pipeline run | status
-    lact eval     freeze | runs | baselines | cross | tune-tv | recheck | cg-check | cost
-    lact report   select-lr | tables | figures | analysis | phase2
-    lact demo
+    lact ops      build
+    lact train    run | grid | status
+    lact eval     freeze | runs | baselines | tune-tv | recheck
 Every command accepts -c/--config, -s/--set, --no-defaults, --device. See ``lact <group> <command> -h``.
 """
 from __future__ import annotations
@@ -17,10 +14,10 @@ import sys
 
 from ..config import ConfigError
 from ..infra.system.runtime import get_logger
-from .commands import data, demo, evaluate, ops, pipeline, report, train
+from .commands import data, evaluate, ops, train
 from .common import config_parser
 
-GROUPS = (data, ops, train, pipeline, evaluate, report, demo)
+GROUPS = (data, ops, train, evaluate)
 USER_ERRORS = (ConfigError, FileNotFoundError, FileExistsError, PermissionError)
 
 

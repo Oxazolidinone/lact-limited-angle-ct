@@ -1,4 +1,5 @@
-# DPMA stage 2 on 2DeteCT (as dpma_dl): loads M1 from the dpma1_dt run of the same geometry.
+# DPMA stage 2 on 2DeteCT; loads M1 from dpma1_dt.
+#   lact train grid configs/experiment/dpma_dt.yaml -c configs/variant/detect.yaml --run
 exp: dpma_dt
 configs:
   - configs/paths.yaml

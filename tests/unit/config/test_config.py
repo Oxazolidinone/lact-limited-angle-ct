@@ -16,11 +16,10 @@ from lact.config import (
 
 
 def test_compose_base_and_overrides():
-    c = compose(["configs/train/sweep_lr.yaml", "configs/model/learn_vit_pm2m.yaml"], ["train.lr=3e-4", "seed=2"])
-    assert c["train"]["epochs"] == 20                     # sweep_lr overrides default
-    assert c["train"]["grad_clip"] == 1.0                 # inherited from default
-    assert c["model"]["regularizer"]["dim"] == 128        # pm2m overrides learn_vit
-    assert c["model"]["regularizer"]["patch"] == 8
+    c = compose(["configs/train/bmvc.yaml", "configs/model/learn_densenet.yaml"], ["train.lr=3e-4", "seed=2"])
+    assert c["train"]["optimizer"] == "adamw"             # bmvc overrides default
+    assert c["train"]["epochs"] == 50                     # inherited from default
+    assert c["model"]["regularizer"]["name"] == "densenet_ed"
     assert c["model"]["K"] == 14                          # from _common
     assert isinstance(c["train"]["lr"], float) and abs(c["train"]["lr"] - 3e-4) < 1e-12
     assert c["seed"] == 2
@@ -41,9 +40,9 @@ def test_hash_and_diff():
 
 
 def test_typed_config_and_roundtrip(tmp_path):
-    cfg = load_config(["configs/model/learn_convnext.yaml", "configs/geometry/fan_a120.yaml"], ["seed=3"])
+    cfg = load_config(["configs/model/learn_densenet.yaml", "configs/geometry/fan_a120.yaml"], ["seed=3"])
     assert isinstance(cfg, Config)
-    assert cfg.seed == 3 and cfg.require_model().regularizer.name == "convnext_ed"
+    assert cfg.seed == 3 and cfg.require_model().regularizer.name == "densenet_ed"
     assert cfg.require_geometry().n_views == 480
     save_yaml(cfg.to_dict(), tmp_path / "c.yaml")
     back = load_config_file(tmp_path / "c.yaml")
@@ -66,8 +65,9 @@ def test_split_disjoint():
 
 
 def test_experiment_spec_validation(tmp_path):
-    spec = ExperimentSpec.load("configs/experiment/e3_main.yaml")
-    assert spec.exp == "e3_main" and spec.lr_from == "e2_sweep" and len(spec.grid["model"]) == 15
+    spec = ExperimentSpec.load("configs/experiment/cmp_mayo.yaml")
+    assert spec.exp == "cmp_mayo" and spec.lr_from is None and len(spec.grid["model"]) == 3
+    assert spec.lr_table == {"fbpconvnet": 1e-4, "lpd": 1e-4, "learn_orig": 1e-4}
     bad = tmp_path / "bad.yaml"
     bad.write_text("exp: x\ngrid:\n  optimizer: [adam]\n", encoding="utf-8")
     with pytest.raises(ConfigError):

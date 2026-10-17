@@ -1,13 +1,11 @@
-"""Methods of the comparison table with the CG-GLORE paper (CG-GLORE, FBPConvNet, Learned Primal-Dual, original
-LEARN) on a small operator: published sizes, forward/backward passes, and slice results independent of the batch."""
-import importlib.util
+"""Compared methods (FBPConvNet, Learned Primal-Dual, original LEARN, DPMA) on a small operator: published sizes,
+forward/backward passes, and slice results independent of the batch."""
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import torch
 
-from lact.core.analysis import model_cost
 from lact.core.imaging.intensity import block_mean
 from lact.core.imaging.phantom import shepp_logan
 from lact.core.models import (
@@ -21,12 +19,9 @@ from lact.core.models import (
 from lact.core.operators import FanBeamFBP
 from lact.infra.operators.operator_store import load_matrix
 
-HAS_CG_GLORE = importlib.util.find_spec("lact.core.models.baselines.cg_glore") is not None
-requires_cg_glore = pytest.mark.skipif(not HAS_CG_GLORE, reason="CG-GLORE is not distributed with this copy")
-
 N = 32
-TINY = {"cg_glore": {"channels": 4, "landmarks": 16}, "fbpconvnet": {"base": 4}, "lpd": {"channels": 8}}
-STAGES = {"cg_glore": 2, "fbpconvnet": 1, "lpd": 2}
+TINY = {"fbpconvnet": {"base": 4}, "lpd": {"channels": 8}}
+STAGES = {"fbpconvnet": 1, "lpd": 2}
 
 
 def _data(op_dir, geom):
@@ -41,7 +36,7 @@ def test_default_architectures_match_the_published_sizes():
     """Default parameter counts versus the CG-GLORE paper's table: 5.5M / 31.1M / 0.251M / 1.8M."""
     unet, lpd = FBPConvNet(), LearnedPrimalDual()
     learn = build_unrolled("learn_orig", {"channels": 48, "kernel": 5}, 256, K=30, share_theta=False)
-    assert all(isinstance(m, Unrolled) and not m.uses_cg for m in (unet, lpd, learn))
+    assert all(isinstance(m, Unrolled) for m in (unet, lpd, learn))
     assert (unet.K, lpd.K, learn.K) == (1, 10, 30)
     assert count_params(unet) == 31_081_345 and count_params(lpd) == 253_220
     assert count_params(learn) == 1_802_970 and learn.regularizer_params() == 30 * 60_097
@@ -50,61 +45,7 @@ def test_default_architectures_match_the_published_sizes():
         build_compared("qn_mixer", {}, K=14)
 
 
-@requires_cg_glore
-def test_cg_glore_matches_the_published_size():
-    from lact.core.models.baselines.cg_glore import CGGlore
-
-    cg = CGGlore()
-    assert isinstance(cg, Unrolled) and not cg.uses_cg and cg.K == 15 and cg.cg_iters == 10
-    assert count_params(cg) == 5_522_940 and cg.regularizer_params() == 5_522_925      # + 15 alpha
-    assert torch.allclose(cg.alpha, torch.full((15,), 0.1)) and list(cg.stage_params()) == ["alphas"]
-
-
-@requires_cg_glore
-def test_cg_glore_tokens_and_attention():
-    """Attention tokens concatenate the features at one position of the four image patches (like the original
-    ``unfold``) and can be folded back."""
-    from lact.core.models.baselines.cg_glore import GloreBlock, NystromAttention
-
-    block = GloreBlock(channels=4, landmarks=16).eval()
-    z = torch.randn(2, 4, N, N)
-    tokens = block.patchify(z)
-    half = N // 2
-    ref = z.unfold(2, half, half).unfold(3, half, half).contiguous().view(2, 4, 4, half, half)
-    ref = ref.view(2, -1, half * half).permute(0, 2, 1)
-    assert tokens.shape == (2, half * half, 16) and torch.equal(tokens, ref)
-    assert torch.equal(block.unpatchify(tokens, z.shape), z)
-    with pytest.raises(ValueError):
-        block.patchify(torch.randn(1, 4, 31, 31))
-    attn = NystromAttention(16, dim_head=8, heads=2, landmarks=16, pinv_iters=2, dropout=0.0).eval()
-    # 250 is not divisible by 16 landmarks: pad at the start, then crop
-    odd = torch.randn(2, 250, 16)
-    with torch.no_grad():
-        both = attn(odd)
-        assert both.shape == odd.shape and torch.isfinite(both).all()
-        assert torch.allclose(both[:1], attn(odd[:1]), atol=1e-5)       # samples computed independently of the batch
-        x = torch.rand(2, 1, N, N)
-        assert torch.allclose(block(x)[1:], block(x[1:]), atol=1e-6)
-
-
-@requires_cg_glore
-def test_cg_glore_solves_its_linear_system(op_dir, small_geom, small_projector):
-    """With a zero regularization block each stage solves (alpha F A + I) x = alpha F y + x_k: the residual must
-    drop."""
-    y, x0, _ = _data(op_dir, small_geom)
-    m = build_compared("cg_glore", TINY["cg_glore"], K=1, projector=small_projector).eval()
-    for p in m.blocks.parameters():
-        torch.nn.init.zeros_(p)
-    with torch.no_grad():
-        fy = m._fbp(y)
-        rhs = m.alpha[0] * fy + x0
-        out = m(y, x0)
-        r0, r1 = (rhs - m._h(x0, 0)).norm(), (rhs - m._h(out, 0)).norm()
-        assert torch.allclose(fy, x0, atol=1e-5)                        # the model's F is the FBP that produced x^0
-        assert float(r1) < 0.05 * float(r0)
-
-
-@pytest.mark.parametrize("name", [pytest.param("cg_glore", marks=requires_cg_glore), "fbpconvnet", "lpd"])
+@pytest.mark.parametrize("name", ["fbpconvnet", "lpd"])
 def test_forward_backward_and_batch_independence(name, op_dir, small_geom, small_projector):
     y, x0, x = _data(op_dir, small_geom)
     torch.manual_seed(0)
@@ -127,8 +68,6 @@ def test_forward_backward_and_batch_independence(name, op_dir, small_geom, small
         assert all(v.shape == x0.shape and torch.isfinite(v).all() for v in xs)
         y2, x02 = torch.cat([y, 0.5 * y.flip(-1)]), torch.cat([x0, 0.5 * x0.flip(-1)])
         assert torch.allclose(m(y2, x02)[:1], xs[-1], atol=1e-5)        # a batch neighbour does not change the result
-    cost = model_cost(m, N)
-    assert cost["n_params"] == count_params(m) and cost["n_params_regularizer"] == m.regularizer_params()
 
 
 def test_fbpconvnet_and_lpd_details(op_dir, small_geom, small_projector):

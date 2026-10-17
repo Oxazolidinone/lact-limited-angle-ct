@@ -1,4 +1,6 @@
-# RegFormer on 2DeteCT, same recipe as base_dl (RegFormer's original FBP step, no L-BFGS).
+# RegFormer on the measured 2DeteCT data, same recipe as base_dl. Deterministic mode is off: the per-layer FBP is
+# slow in deterministic mode.
+#   lact train grid configs/experiment/base_dt.yaml -c configs/variant/detect.yaml --run
 exp: base_dt
 configs:
   - configs/paths.yaml

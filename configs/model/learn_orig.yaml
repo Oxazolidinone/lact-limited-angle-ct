@@ -1,9 +1,8 @@
 # LEARN as in the original paper (Chen et al., IEEE TMI 2018), configured as in the CG-GLORE table: 30 layers, EACH with
 # its own three 5x5 convolution layers of 48 channels (no weight sharing). 1.80M parameters (the CG-GLORE paper reports
-# 1.8M). Unlike the E3 LEARN-CNN (configs/model/learn_cnn.yaml: 14 layers sharing one set of weights, 0.060M). Kernels
-# initialised from N(0, 0.01^2) as in the original paper; the steps alpha_k, beta_k keep the project's LEARN
-# parameterisation (original paper: lambda initialised to 0). Training recipe: configs/train/bmvc.yaml through the cmp_*
-# grids.
+# 1.8M). Kernels initialised from N(0, 0.01^2) as in the original paper; the steps alpha_k, beta_k keep the project's
+# LEARN parameterisation (original paper: lambda initialised to 0). Training recipe: configs/train/bmvc.yaml through the
+# cmp_* grids.
 _base_: [_common.yaml]
 model:
   arch: learn_orig
